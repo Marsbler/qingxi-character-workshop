@@ -1,0 +1,3 @@
+Fields: name, one_liner, appearance, personality, backstory, primary_affinity,
+affinities (object of six zh names -> 0-100), spirit_domain, ability_showcase,
+image_prompt, image_negative, motion_prompt.
