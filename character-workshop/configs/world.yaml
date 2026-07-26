@@ -1,0 +1,54 @@
+world_name: "青汐灵隙"
+world_name_en: "Qingxi Rift"
+tagline: "现代都市缝隙中，灵力以六系流转，人人可觉醒属于自己的灵域。"
+ip_policy: >
+  Never use names, places, or distinctive proper nouns from existing
+  copyrighted anime/games/films (including but not limited to any
+  well-known black-cat fairy franchises). All characters must be original.
+
+affinities:
+  - id: form
+    name_zh: "形"
+    name_en: "Form"
+    description: "塑形与物质外形的改写。"
+    visual_keywords: ["shapeshift silhouette", "clay-like matter", "shadow morph"]
+  - id: mind
+    name_zh: "念"
+    name_en: "Mind"
+    description: "意念、符文与精神干涉。"
+    visual_keywords: ["runes", "psychic ripples", "pale blue glow"]
+  - id: life
+    name_zh: "生"
+    name_en: "Life"
+    description: "生长、治愈与生机。"
+    visual_keywords: ["vines", "healing motes", "emerald light"]
+  - id: matter
+    name_zh: "质"
+    name_en: "Matter"
+    description: "密度、金属与重力质感。"
+    visual_keywords: ["metal crystal", "gravity rings", "ore sheen"]
+  - id: void
+    name_zh: "空"
+    name_en: "Void"
+    description: "空间裂隙与折叠。"
+    visual_keywords: ["spatial rift", "folded paper space", "deep purple cracks"]
+  - id: time
+    name_zh: "时"
+    name_en: "Time"
+    description: "残影、迟滞与瞬间凝固。"
+    visual_keywords: ["afterimages", "amber freeze", "clock pendulum motifs"]
+
+spirit_domain:
+  name_zh: "灵域"
+  name_en: "Spirit Domain"
+  description: "角色内在的能力空间，决定战斗姿态与特效气质。"
+
+style_guide:
+  art: "anime character portrait, clean lineart, cel shading, expressive eyes, detailed hair, masterpiece"
+  avoid: "photorealistic, NSFW, logo, watermark, text artifacts, extra fingers, blurry"
+
+banned_substrings:
+  - "罗小黑"
+  - "老君"
+  - "无限"
+  - "Luo Xiaohei"
