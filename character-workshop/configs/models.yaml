@@ -1,0 +1,27 @@
+llm:
+  model_id: Qwen/Qwen2.5-7B-Instruct
+  max_new_tokens: 1024
+  temperature: 0.7
+
+image:
+  # Prefer a clearly licensed anime SDXL checkpoint; override on cloud after smoke test
+  model_id: "cagliostrolab/animagine-xl-3.1"
+  width: 832
+  height: 1216
+  steps: 30
+  guidance: 6.0
+  ref_scale: 0.65
+  dtype: fp16
+  enable_attention_slicing: true
+  enable_vae_tiling: true
+  lora_path: null
+  lora_scale: 0.8
+
+video:
+  enabled: true
+  # Set after ROCm smoke test — placeholder id
+  model_id: "THUDM/CogVideoX-2b"
+  backend: auto   # auto | cogvideox | animatediff | mock
+  num_frames: 49
+  fps: 8
+  timeout_sec: 240
