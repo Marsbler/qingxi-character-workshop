@@ -1,0 +1,1 @@
+"""Lingxi Character Workshop — AMD Track 1 multimodal tool."""
