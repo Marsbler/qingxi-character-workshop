@@ -186,13 +186,62 @@ cd character-workshop
 
 ### 方式 C1 · 云上：Git clone（推荐）
 
-在 **Radeon Cloud JupyterLab → Terminal** 执行（公开仓库，一般无需 token）：
+在 **Radeon Cloud JupyterLab → Terminal** 执行（公开仓库，一般无需 token）。  
+你当前工作目录是 `/workspace`，可直接在该目录克隆。
+
+#### C1.0 若报错：`server certificate verification failed. CAfile: none`
+
+容器里缺 CA 证书。**先修证书，再 clone**（按顺序试）：
+
+**方案 1 — 安装 CA（优先）**
 
 ```bash
-# PVC 持久目录（路径以平台为准，常见 $HOME）
-cd ~
+# Debian/Ubuntu 镜像
+sudo apt-get update
+sudo apt-get install -y ca-certificates
+sudo update-ca-certificates
+
+# 再试
+export REPO_URL="https://github.com/Marsbler/qingxi-character-workshop.git"
+git clone "$REPO_URL" qingxi-character-workshop
+```
+
+**方案 2 — 临时关闭 Git SSL 校验（仅当前 shell，能下代码即可）**
+
+```bash
+export GIT_SSL_NO_VERIFY=1
+# 或: git config --global http.sslVerify false
 
 export REPO_URL="https://github.com/Marsbler/qingxi-character-workshop.git"
+cd /workspace
+git clone "$REPO_URL" qingxi-character-workshop
+```
+
+> 方案 2 降低安全性，**只用于黑客松临时环境拉公开代码**。拉完可恢复：  
+> `git config --global --unset http.sslVerify` 或新开 Terminal（未 export 则不影响）。
+
+**方案 3 — 用 ghproxy / 镜像（GitHub 直连 SSL 仍失败时）**
+
+```bash
+export GIT_SSL_NO_VERIFY=1
+git clone https://ghproxy.com/https://github.com/Marsbler/qingxi-character-workshop.git qingxi-character-workshop
+# 若 ghproxy 不可用，可换其他 GitHub 代理，或改用下方 C2 打包上传
+```
+
+**方案 4 — 仍失败：改用 C2 本机 tar 上传**（不依赖云上访问 GitHub）。
+
+---
+
+#### C1.1 正常克隆步骤
+
+```bash
+# 你的环境示例：/workspace
+cd /workspace
+# 或: cd ~
+
+export REPO_URL="https://github.com/Marsbler/qingxi-character-workshop.git"
+# 若仍有证书问题，先保留：
+# export GIT_SSL_NO_VERIFY=1
 
 # 首次克隆
 git clone "$REPO_URL" qingxi-character-workshop
@@ -214,7 +263,8 @@ test -f app.py && echo "PROJECT OK"
 之后在本机 `git push` 新提交后，云上更新：
 
 ```bash
-cd ~/qingxi-character-workshop
+cd /workspace/qingxi-character-workshop
+# 若仍有证书问题：export GIT_SSL_NO_VERIFY=1
 git checkout feature/character-workshop
 git pull origin feature/character-workshop
 cd character-workshop
@@ -223,6 +273,7 @@ cd character-workshop
 若仓库改为 **private**，克隆需 PAT（**勿写入会提交的文件**）：
 
 ```bash
+export GIT_SSL_NO_VERIFY=1   # 仅当仍有证书错误时
 git clone "https://<GitHub用户名>:<PAT>@github.com/Marsbler/qingxi-character-workshop.git" qingxi-character-workshop
 ```
 
@@ -274,26 +325,89 @@ scp -P <port> -r "D:\APP\Obsidian\Documents\Marbler\主业副业\AMDAIHackathon\
 
 ## 阶段 D · Python 依赖
 
+### ⚠️ 致命错误（你已踩过）
+
+在清华/默认 PyPI 上执行：
+
 ```bash
-cd ~/work/character-workshop   # 按你的实际路径改
-# 或: cd ~/AMDAIHackathon/character-workshop
+python3 -m pip install -r requirements.txt
+```
 
-python3 -m pip install -U pip
+若旧版 `requirements` 含 `accelerate`，pip 会自动装 **`torch …+cu*`（NVIDIA CUDA）** 和大量 `nvidia-*` 包。  
+在 AMD 上结果是：`torch_version='…+cu130'`、`device_type='cpu'`。
 
-# 镜像已带 torch 时：不要覆盖成 CUDA 轮子
+**正确顺序永远是：先 ROCm torch → 再装应用依赖 → 再确认仍是 +rocm。**
+
+---
+
+### D0 · 若已装成 +cu*：先清场再装 ROCm（复制执行）
+
+```bash
+cd /workspace/qingxi-character-workshop/character-workshop
+
+# 1) 硬件是否可见
+rocm-smi || true
+cat /opt/rocm/.info/version 2>/dev/null || true
+
+# 2) 卸掉 CUDA 版 torch 与 nvidia 轮子
+python3 -m pip uninstall -y torch torchvision torchaudio || true
+python3 -m pip freeze | grep -iE '^nvidia-|^cuda-toolkit|^triton==' | cut -d= -f1 | xargs -r python3 -m pip uninstall -y
+
+# 3) 安装 ROCm 版 PyTorch（按 ROCm 版本改 rocm6.2 → 6.1/6.3）
+# 文档: https://pytorch.org/get-started/locally/
+python3 -m pip install torch torchvision torchaudio \
+  --index-url https://download.pytorch.org/whl/rocm6.2
+
+# 4) 必须通过
+python3 - <<'PY'
+import torch
+print("torch", torch.__version__)
+print("available", torch.cuda.is_available())
+print("hip", getattr(torch.version, "hip", None))
+assert torch.cuda.is_available(), "ROCm torch still not seeing GPU"
+assert "cu" not in torch.__version__ or "rocm" in torch.__version__.lower()
+print("device", torch.cuda.get_device_name(0))
+print("ROCm TORCH OK")
+PY
+```
+
+若步骤 3 的 `rocm6.2` 报错，试：
+
+```bash
+python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.1
+# 或 rocm6.3
+```
+
+若 **镜像自带 ROCm torch**（装依赖前 `import torch` 已是 True），则 **跳过 D0 重装**，只做卸载 `+cu*` 后重新 `import` 看是否恢复系统包；没有系统包再用上面 index-url。
+
+---
+
+### D1 · 再装应用依赖（避免再次拖入 CUDA torch）
+
+```bash
+cd /workspace/qingxi-character-workshop/character-workshop
+
+# 新版 requirements.txt 已去掉会强行解析 torch 的 accelerate 行
 python3 -m pip install -r requirements.txt
 
-# 若缺测试工具（可选）
-python3 -m pip install pytest
+# accelerate 单独装且 --no-deps，避免再次 pip 进 CUDA torch
+python3 -m pip install 'accelerate>=0.33.0' --no-deps
+python3 -m pip install psutil packaging 2>/dev/null || true
+
+# 立刻复查 —— 若又变成 +cu*，立刻回到 D0
+python3 -c "import torch; print(torch.__version__, torch.cuda.is_available(), getattr(torch.version,'hip',None))"
 ```
 
-`setup_rocm.sh` 仅打印说明，可执行：
+可选：
 
 ```bash
-bash scripts/setup_rocm.sh
+python3 -m pip install pytest
+bash scripts/setup_rocm.sh   # 仅打印说明
 ```
 
-再确认项目侧设备：
+---
+
+### D2 · 项目 device 检测
 
 ```bash
 export MOCK=0
@@ -304,8 +418,11 @@ print(d)
 print("profile", vram_profile(d))
 assert d.mock_mode is False
 assert d.device_type == "cuda", d
+print("PROJECT DEVICE OK")
 PY
 ```
+
+期望：`torch_version` 含 **`rocm`**，`device_type='cuda'`，`rocm_hint=True`，`vram_gb` 有数字。
 
 ---
 
