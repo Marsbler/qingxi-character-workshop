@@ -77,27 +77,154 @@ PY
 
 ## 阶段 C · 把项目弄上云
 
-任选一种。
+**推荐顺序：本机 push 到 Gitee/GitHub → 云上 `git clone`。**  
+无远程时再用 C2 打包上传或 C3 scp。
 
-### 方式 C1 · Git（推荐，需仓库已推远程）
+### 方式 C0 · 本机：提交并推送到远程（云端之前先做）
 
-```bash
-# PVC 持久目录示例（路径以平台为准，常见 $HOME 或 /workspace）
-cd ~
-# 若已有远程：
-git clone <你的仓库URL> AMDAIHackathon
-cd AMDAIHackathon
+本地开发在 worktree 分支 `feature/character-workshop`：
 
-# 代码在 feature 分支时：
-git fetch origin
-git checkout feature/character-workshop
-
-cd character-workshop
-pwd   # 应能看到 app.py
-ls -la app.py configs src
+```text
+D:\APP\Obsidian\Documents\Marbler\主业副业\AMDAIHackathon\.worktrees\character-workshop
 ```
 
-### 方式 C2 · 本机打包上传（无远程时）
+#### C0.1 确认状态并提交未保存改动
+
+```powershell
+cd "D:\APP\Obsidian\Documents\Marbler\主业副业\AMDAIHackathon\.worktrees\character-workshop"
+
+git status -sb
+git branch --show-current
+# 应显示 feature/character-workshop
+
+# 如有未提交文件：
+git add character-workshop
+git status
+git commit -m "chore: sync workshop code for Radeon Cloud"
+```
+
+#### C0.2 创建远程仓库（二选一，只需做一次）
+
+**选项 A — Gitee（国内云克隆通常更稳）**
+
+1. 浏览器打开 https://gitee.com → 登录 → **新建仓库**
+2. 仓库名建议：`AMDAIHackathon` 或 `qingxi-character-workshop`
+3. **不要**勾选「使用 Readme 初始化」（避免与本地历史冲突）；若已初始化，见下方 C0.4
+4. 复制 HTTPS 地址，形如：
+   `https://gitee.com/<你的用户名>/AMDAIHackathon.git`
+
+**选项 B — GitHub**
+
+1. https://github.com/new → 新建 **空** 仓库（不要加 README）
+2. 复制：`https://github.com/<你的用户名>/AMDAIHackathon.git`
+
+#### C0.3 添加 remote 并 push（本机 PowerShell）
+
+把下面的 URL 换成你的真实地址：
+
+```powershell
+cd "D:\APP\Obsidian\Documents\Marbler\主业副业\AMDAIHackathon\.worktrees\character-workshop"
+
+# 若还没有 origin：
+git remote add origin https://gitee.com/<你的用户名>/AMDAIHackathon.git
+# 或 GitHub：
+# git remote add origin https://github.com/<你的用户名>/AMDAIHackathon.git
+
+# 若 origin 已存在但地址不对：
+# git remote set-url origin https://gitee.com/<你的用户名>/AMDAIHackathon.git
+
+git remote -v
+
+# 推送功能分支（云上主要用这个）
+git push -u origin feature/character-workshop
+
+# 建议同时推送 main（便于默认克隆）
+git push -u origin main
+```
+
+认证提示时：
+
+- **Gitee**：用户名 = Gitee 用户名；密码处填 **私人令牌**（设置 → 私人令牌，勾选 `projects`）
+- **GitHub**：用户名 + **Personal Access Token**（不要用账户登录密码）
+
+验证浏览器能打开：
+
+- `https://gitee.com/<用户名>/AMDAIHackathon`
+- 或 GitHub 对应页面，且能看到 `character-workshop/app.py`
+
+#### C0.4 远程已用 README 初始化导致 push 被拒时
+
+```powershell
+git pull origin master --allow-unrelated-histories
+# 或: git pull origin main --allow-unrelated-histories
+# 解决冲突后：
+git push -u origin feature/character-workshop
+git push -u origin main
+```
+
+#### C0.5 以后改完代码再同步到云
+
+```powershell
+cd "D:\APP\Obsidian\Documents\Marbler\主业副业\AMDAIHackathon\.worktrees\character-workshop"
+git add -A
+git status
+git commit -m "feat: describe your change"
+git push origin feature/character-workshop
+```
+
+云上已有克隆时，在 Jupyter Terminal：
+
+```bash
+cd ~/AMDAIHackathon   # 你的克隆目录
+git fetch origin
+git checkout feature/character-workshop
+git pull origin feature/character-workshop
+cd character-workshop
+```
+
+---
+
+### 方式 C1 · 云上：Git clone（推荐）
+
+在 **Radeon Cloud JupyterLab → Terminal** 执行。  
+将 `REPO_URL` 换成 C0 里 push 成功的地址。
+
+```bash
+# PVC 持久目录（路径以平台为准，常见 $HOME）
+cd ~
+export REPO_URL="https://gitee.com/<你的用户名>/AMDAIHackathon.git"
+# export REPO_URL="https://github.com/<你的用户名>/AMDAIHackathon.git"
+
+# 首次克隆
+git clone "$REPO_URL" AMDAIHackathon
+cd AMDAIHackathon
+
+# 检出开发分支（含完整 character-workshop）
+git fetch origin
+git checkout feature/character-workshop
+# 若远程默认已是该分支，可直接：
+# git pull
+
+cd character-workshop
+pwd
+ls -la app.py configs src README.md
+
+# 确认
+test -f app.py && echo "PROJECT OK"
+```
+
+私有仓库克隆需带令牌（**勿把令牌写进会提交的文件**）：
+
+```bash
+# Gitee 示例（一次性，历史可能留下 URL——用完可改 remote 去掉令牌）
+git clone "https://<用户名>:<私人令牌>@gitee.com/<用户名>/AMDAIHackathon.git" AMDAIHackathon
+```
+
+更稳妥：clone 时交互输入，或云上配置 credential 后使用无令牌的 HTTPS URL。
+
+---
+
+### 方式 C2 · 本机打包上传（无远程 / Git 不通时）
 
 **本机 PowerShell：**
 
@@ -110,6 +237,7 @@ tar -czf "$env:TEMP\qingxi-workshop.tgz" `
   --exclude=character-workshop/models `
   --exclude=character-workshop/.pytest_cache `
   character-workshop
+Write-Host "Archive: $env:TEMP\qingxi-workshop.tgz"
 ```
 
 JupyterLab 左侧 **Upload** 上传 `qingxi-workshop.tgz`，云上：
