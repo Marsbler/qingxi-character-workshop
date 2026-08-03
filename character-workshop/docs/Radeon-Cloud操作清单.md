@@ -10,6 +10,15 @@
 D:\APP\Obsidian\Documents\Marbler\主业副业\AMDAIHackathon\.worktrees\character-workshop\character-workshop
 ```
 
+**远程仓库（已推送，云上 clone 用这个）：**
+
+| 项 | 值 |
+|----|-----|
+| GitHub | https://github.com/Marsbler/qingxi-character-workshop |
+| Clone URL | `https://github.com/Marsbler/qingxi-character-workshop.git` |
+| 开发分支 | `feature/character-workshop`（含完整 `character-workshop/` 应用） |
+| 默认分支 | `main`（早期文档提交；**云上请 checkout feature 分支**） |
+
 ---
 
 ## 阶段 A · 浏览器：开通实例（无 shell 命令）
@@ -103,54 +112,45 @@ git status
 git commit -m "chore: sync workshop code for Radeon Cloud"
 ```
 
-#### C0.2 创建远程仓库（二选一，只需做一次）
+#### C0.2 远程仓库状态（本项目已完成）
 
-**选项 A — Gitee（国内云克隆通常更稳）**
+| 项 | 值 |
+|----|-----|
+| 平台 | **GitHub** |
+| 仓库 | https://github.com/Marsbler/qingxi-character-workshop |
+| HTTPS | `https://github.com/Marsbler/qingxi-character-workshop.git` |
+| 分支 | `feature/character-workshop`（应用代码）、`main`（基础文档） |
 
-1. 浏览器打开 https://gitee.com → 登录 → **新建仓库**
-2. 仓库名建议：`AMDAIHackathon` 或 `qingxi-character-workshop`
-3. **不要**勾选「使用 Readme 初始化」（避免与本地历史冲突）；若已初始化，见下方 C0.4
-4. 复制 HTTPS 地址，形如：
-   `https://gitee.com/<你的用户名>/AMDAIHackathon.git`
+若需在**新机器**重建 remote（已有本地仓时）：
 
-**选项 B — GitHub**
+```powershell
+cd "D:\APP\Obsidian\Documents\Marbler\主业副业\AMDAIHackathon\.worktrees\character-workshop"
+git remote remove origin 2>$null
+git remote add origin https://github.com/Marsbler/qingxi-character-workshop.git
+git remote -v
+```
 
-1. https://github.com/new → 新建 **空** 仓库（不要加 README）
-2. 复制：`https://github.com/<你的用户名>/AMDAIHackathon.git`
-
-#### C0.3 添加 remote 并 push（本机 PowerShell）
-
-把下面的 URL 换成你的真实地址：
+#### C0.3 本机再次 push（改代码后）
 
 ```powershell
 cd "D:\APP\Obsidian\Documents\Marbler\主业副业\AMDAIHackathon\.worktrees\character-workshop"
 
-# 若还没有 origin：
-git remote add origin https://gitee.com/<你的用户名>/AMDAIHackathon.git
-# 或 GitHub：
-# git remote add origin https://github.com/<你的用户名>/AMDAIHackathon.git
-
-# 若 origin 已存在但地址不对：
-# git remote set-url origin https://gitee.com/<你的用户名>/AMDAIHackathon.git
-
-git remote -v
-
-# 推送功能分支（云上主要用这个）
+git add -A
+git status
+git commit -m "feat: describe your change"
+# 首次设置 upstream（若尚未设置）：
 git push -u origin feature/character-workshop
-
-# 建议同时推送 main（便于默认克隆）
-git push -u origin main
+# 之后：
+git push origin feature/character-workshop
 ```
 
-认证提示时：
+认证：GitHub 用户名 + **Personal Access Token**（`repo` 权限）。**不要**把 token 写进任何会 `git add` 的文件。
 
-- **Gitee**：用户名 = Gitee 用户名；密码处填 **私人令牌**（设置 → 私人令牌，勾选 `projects`）
-- **GitHub**：用户名 + **Personal Access Token**（不要用账户登录密码）
+验证浏览器打开：
 
-验证浏览器能打开：
+https://github.com/Marsbler/qingxi-character-workshop/tree/feature/character-workshop/character-workshop  
 
-- `https://gitee.com/<用户名>/AMDAIHackathon`
-- 或 GitHub 对应页面，且能看到 `character-workshop/app.py`
+应能看到 `app.py`、`src/`、`configs/`。
 
 #### C0.4 远程已用 README 初始化导致 push 被拒时
 
@@ -186,24 +186,22 @@ cd character-workshop
 
 ### 方式 C1 · 云上：Git clone（推荐）
 
-在 **Radeon Cloud JupyterLab → Terminal** 执行。  
-将 `REPO_URL` 换成 C0 里 push 成功的地址。
+在 **Radeon Cloud JupyterLab → Terminal** 执行（公开仓库，一般无需 token）：
 
 ```bash
 # PVC 持久目录（路径以平台为准，常见 $HOME）
 cd ~
-export REPO_URL="https://gitee.com/<你的用户名>/AMDAIHackathon.git"
-# export REPO_URL="https://github.com/<你的用户名>/AMDAIHackathon.git"
+
+export REPO_URL="https://github.com/Marsbler/qingxi-character-workshop.git"
 
 # 首次克隆
-git clone "$REPO_URL" AMDAIHackathon
-cd AMDAIHackathon
+git clone "$REPO_URL" qingxi-character-workshop
+cd qingxi-character-workshop
 
-# 检出开发分支（含完整 character-workshop）
+# 必须检出开发分支（main 上可能没有完整应用代码）
 git fetch origin
 git checkout feature/character-workshop
-# 若远程默认已是该分支，可直接：
-# git pull
+git pull origin feature/character-workshop
 
 cd character-workshop
 pwd
@@ -213,14 +211,20 @@ ls -la app.py configs src README.md
 test -f app.py && echo "PROJECT OK"
 ```
 
-私有仓库克隆需带令牌（**勿把令牌写进会提交的文件**）：
+之后在本机 `git push` 新提交后，云上更新：
 
 ```bash
-# Gitee 示例（一次性，历史可能留下 URL——用完可改 remote 去掉令牌）
-git clone "https://<用户名>:<私人令牌>@gitee.com/<用户名>/AMDAIHackathon.git" AMDAIHackathon
+cd ~/qingxi-character-workshop
+git checkout feature/character-workshop
+git pull origin feature/character-workshop
+cd character-workshop
 ```
 
-更稳妥：clone 时交互输入，或云上配置 credential 后使用无令牌的 HTTPS URL。
+若仓库改为 **private**，克隆需 PAT（**勿写入会提交的文件**）：
+
+```bash
+git clone "https://<GitHub用户名>:<PAT>@github.com/Marsbler/qingxi-character-workshop.git" qingxi-character-workshop
+```
 
 ---
 
