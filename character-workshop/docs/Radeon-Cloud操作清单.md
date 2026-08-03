@@ -21,6 +21,38 @@ D:\APP\Obsidian\Documents\Marbler\主业副业\AMDAIHackathon\.worktrees\charact
 
 ---
 
+## ⭐ 重来 / 第一次上云：请只跟这一份
+
+环境弄乱、Destroy 重开、或第一次配置时，**不要从下面零散章节拼步骤**。
+
+→ 打开并严格按顺序执行：
+
+**[`character-workshop/docs/Radeon-Cloud从零正确开工.md`](../../.worktrees/character-workshop/character-workshop/docs/Radeon-Cloud从零正确开工.md)**  
+
+仓库内路径（clone 后）：
+
+```text
+qingxi-character-workshop/character-workshop/docs/Radeon-Cloud从零正确开工.md
+```
+
+**核心防坑顺序（背下来）：**
+
+```text
+ROCm 镜像 Launch
+  → rocm-smi 有 GPU
+  → python 中 torch 已是 ROCm 且 available=True   （否则只装 ROCm torch）
+  → git clone + feature/character-workshop
+  → bash scripts/install_app_deps.sh              （禁止先 pip install -r 乱装）
+  → detect_device 通过
+  → download_models → 出卡 → app.py
+```
+
+**绝对禁止：** 未确认 ROCm torch 前执行 `pip install -r requirements.txt` / `pip install torch`（默认源会变成 `+cu*`）。
+
+以下阶段 A～K 为分项参考；**与「从零正确开工」冲突时，以从零文档为准。**
+
+---
+
 ## 阶段 A · 浏览器：开通实例（无 shell 命令）
 
 ### A1. 登录与权限
@@ -325,104 +357,31 @@ scp -P <port> -r "D:\APP\Obsidian\Documents\Marbler\主业副业\AMDAIHackathon\
 
 ## 阶段 D · Python 依赖
 
-### ⚠️ 致命错误（你已踩过）
+> **完整防坑步骤见：`docs/Radeon-Cloud从零正确开工.md` 步骤 3～7。**  
+> 下面是摘要；冲突时以从零文档为准。
 
-在清华/默认 PyPI 上执行：
-
-```bash
-python3 -m pip install -r requirements.txt
-```
-
-若旧版 `requirements` 含 `accelerate`，pip 会自动装 **`torch …+cu*`（NVIDIA CUDA）** 和大量 `nvidia-*` 包。  
-在 AMD 上结果是：`torch_version='…+cu130'`、`device_type='cpu'`。
-
-**正确顺序永远是：先 ROCm torch → 再装应用依赖 → 再确认仍是 +rocm。**
-
----
-
-### D0 · 若已装成 +cu*：先清场再装 ROCm（复制执行）
+### 唯一推荐装依赖命令
 
 ```bash
 cd /workspace/qingxi-character-workshop/character-workshop
 
-# 1) 硬件是否可见
-rocm-smi || true
-cat /opt/rocm/.info/version 2>/dev/null || true
+# 门禁：必须先 ROCm torch available=True
+python3 -c "import torch; assert torch.cuda.is_available(); print(torch.__version__, torch.version.hip)"
 
-# 2) 卸掉 CUDA 版 torch 与 nvidia 轮子
-python3 -m pip uninstall -y torch torchvision torchaudio || true
-python3 -m pip freeze | grep -iE '^nvidia-|^cuda-toolkit|^triton==' | cut -d= -f1 | xargs -r python3 -m pip uninstall -y
+# 安全脚本（preflight + requirements + accelerate --no-deps + postflight）
+bash scripts/install_app_deps.sh
 
-# 3) 安装 ROCm 版 PyTorch（按 ROCm 版本改 rocm6.2 → 6.1/6.3）
-# 文档: https://pytorch.org/get-started/locally/
-python3 -m pip install torch torchvision torchaudio \
-  --index-url https://download.pytorch.org/whl/rocm6.2
-
-# 4) 必须通过
-python3 - <<'PY'
-import torch
-print("torch", torch.__version__)
-print("available", torch.cuda.is_available())
-print("hip", getattr(torch.version, "hip", None))
-assert torch.cuda.is_available(), "ROCm torch still not seeing GPU"
-assert "cu" not in torch.__version__ or "rocm" in torch.__version__.lower()
-print("device", torch.cuda.get_device_name(0))
-print("ROCm TORCH OK")
-PY
-```
-
-若步骤 3 的 `rocm6.2` 报错，试：
-
-```bash
-python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.1
-# 或 rocm6.3
-```
-
-若 **镜像自带 ROCm torch**（装依赖前 `import torch` 已是 True），则 **跳过 D0 重装**，只做卸载 `+cu*` 后重新 `import` 看是否恢复系统包；没有系统包再用上面 index-url。
-
----
-
-### D1 · 再装应用依赖（避免再次拖入 CUDA torch）
-
-```bash
-cd /workspace/qingxi-character-workshop/character-workshop
-
-# 新版 requirements.txt 已去掉会强行解析 torch 的 accelerate 行
-python3 -m pip install -r requirements.txt
-
-# accelerate 单独装且 --no-deps，避免再次 pip 进 CUDA torch
-python3 -m pip install 'accelerate>=0.33.0' --no-deps
-python3 -m pip install psutil packaging 2>/dev/null || true
-
-# 立刻复查 —— 若又变成 +cu*，立刻回到 D0
-python3 -c "import torch; print(torch.__version__, torch.cuda.is_available(), getattr(torch.version,'hip',None))"
-```
-
-可选：
-
-```bash
-python3 -m pip install pytest
-bash scripts/setup_rocm.sh   # 仅打印说明
-```
-
----
-
-### D2 · 项目 device 检测
-
-```bash
 export MOCK=0
-python3 - <<'PY'
-from src.device import detect_device, vram_profile
-d = detect_device()
-print(d)
-print("profile", vram_profile(d))
-assert d.mock_mode is False
-assert d.device_type == "cuda", d
-print("PROJECT DEVICE OK")
-PY
+python3 -c "from src.device import detect_device; d=detect_device(); print(d); assert d.device_type=='cuda'"
 ```
 
-期望：`torch_version` 含 **`rocm`**，`device_type='cuda'`，`rocm_hint=True`，`vram_gb` 有数字。
+### 禁止
+
+```bash
+pip install torch                          # 默认源 = 常变成 +cu*
+pip install -r requirements.txt            # 在 torch 未就绪时禁止
+pip install accelerate                     # 禁止不带 --no-deps
+```
 
 ---
 
