@@ -167,6 +167,10 @@ ls -la app.py requirements.txt scripts/install_app_deps.sh
 ```bash
 cd /workspace/qingxi-character-workshop/character-workshop
 
+# 可选但推荐：装 Noto CJK 字体，保证海报中文不乱码
+# （代码已有自动字体发现 + 无字体时会在海报右下角画警告，装字体是最稳路径）
+sudo apt-get install -y fonts-noto-cjk 2>/dev/null || true
+
 # 再次确认 ROCm torch（门禁）
 python3 -c "import torch; assert torch.cuda.is_available(); print(torch.__version__, torch.version.hip)"
 
