@@ -22,6 +22,9 @@ class CharacterCard(BaseModel):
     image_prompt: str
     image_negative: str = ""
     motion_prompt: str = ""
+    name_en: str = ""
+    one_liner_en: str = ""
+    lore_en: str = ""
 
     @field_validator("name", "one_liner", "appearance", "image_prompt")
     @classmethod

@@ -16,3 +16,12 @@ def test_mock_generate_character():
     assert isinstance(card, CharacterCard)
     assert card.primary_affinity == "空"
     assert card.image_prompt
+
+
+def test_mock_card_has_english_fields():
+    from src.llm_role import generate_character
+    card = generate_character("生系治愈师", affinity_pref="生", mock=True)
+    assert card.name_en
+    assert card.one_liner_en
+    assert card.lore_en
+    assert all(ord(c) < 128 for c in card.lore_en)

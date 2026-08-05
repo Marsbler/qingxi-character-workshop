@@ -230,14 +230,19 @@ def _wrap_text(draw, text, font, max_width):
     return lines
 
 
-def draw_radar(affinities: dict[str, int], size: int = 400) -> Image.Image:
+def draw_radar(
+    affinities: dict[str, int],
+    size: int = 400,
+    labels: list[str] | None = None,
+) -> Image.Image:
     world = load_world()
-    labels = world.affinity_zh_names()
+    zh_names = world.affinity_zh_names()
+    display_labels = labels if labels is not None else zh_names
     img = Image.new("RGBA", (size, size), (20, 24, 32, 255))
     draw = ImageDraw.Draw(img)
     cx = cy = size / 2
     radius = size * 0.35
-    n = len(labels)
+    n = len(display_labels)
     # grid
     for ring in (0.25, 0.5, 0.75, 1.0):
         pts = []
@@ -249,9 +254,10 @@ def draw_radar(affinities: dict[str, int], size: int = 400) -> Image.Image:
     # values
     val_pts = []
     font = _font(14)
-    for i, lab in enumerate(labels):
+    for i, lab in enumerate(display_labels):
         ang = -math.pi / 2 + 2 * math.pi * i / n
-        score = max(0, min(100, int(affinities.get(lab, 0))))
+        zh_key = zh_names[i]
+        score = max(0, min(100, int(affinities.get(zh_key, 0))))
         r = radius * (score / 100.0)
         val_pts.append((cx + r * math.cos(ang), cy + r * math.sin(ang)))
         lx = cx + (radius + 28) * math.cos(ang)
@@ -259,6 +265,43 @@ def draw_radar(affinities: dict[str, int], size: int = 400) -> Image.Image:
         draw.text((lx - 8, ly - 8), lab, fill=(220, 230, 240, 255), font=font)
     draw.polygon(val_pts, fill=(80, 160, 220, 90), outline=(120, 200, 255, 255))
     return img.convert("RGB")
+
+
+def _display_content(card: CharacterCard, english: bool) -> dict:
+    world = load_world()
+    if not english:
+        return {
+            "title": card.name,
+            "subtitle": card.one_liner,
+            "radar_labels": None,
+            "entries": [
+                ("主系", card.primary_affinity),
+                (world.spirit_domain.name_zh, card.spirit_domain),
+                ("外形", card.appearance),
+                ("性格", card.personality),
+                ("背景", card.backstory),
+                ("展示", card.ability_showcase),
+            ],
+            "footer": f"{world.world_name} · {card.primary_affinity} · Local ROCm",
+        }
+    aff = world.affinity_by_zh(card.primary_affinity)
+    aff_en = aff.name_en if aff else card.primary_affinity
+    title = card.name_en.strip() or f"{aff_en} Envoy"
+    subtitle = card.one_liner_en.strip() or card.image_prompt[:90]
+    lore = card.lore_en.strip() or (
+        f"Appearance: {card.image_prompt}. Ability: {card.motion_prompt or 'original ' + aff_en + ' techniques'}."
+    )
+    entries = [
+        ("Affinity", aff_en),
+        (world.spirit_domain.name_en, lore),
+    ]
+    return {
+        "title": title,
+        "subtitle": subtitle,
+        "radar_labels": [a.name_en for a in world.affinities],
+        "entries": entries,
+        "footer": f"{world.world_name_en} | {aff_en} | Local ROCm | EN fallback",
+    }
 
 
 def compose_card(
@@ -297,28 +340,22 @@ def compose_card(
     body_f = _font(18)
     small_f = _font(15)
 
+    english = not has_cjk_font()
+    content = _display_content(card, english)
+    sep = ": " if english else " · "
+
     # Title (name) at (600, 40)
-    draw.text((rx, 40), card.name, fill=(240, 244, 255), font=title_f)
+    draw.text((rx, 40), content["title"], fill=(240, 244, 255), font=title_f)
 
     # one_liner at (600, 100), wrapped to width 750
-    for i, ln in enumerate(_wrap_text(draw, card.one_liner, oneliner_f, right_w)):
+    for i, ln in enumerate(_wrap_text(draw, content["subtitle"], oneliner_f, right_w)):
         draw.text((rx, 100 + i * 26), ln, fill=(160, 180, 210), font=oneliner_f)
 
     # Radar at (620, 160), size 320
-    radar = draw_radar(card.affinities, size=320)
+    radar = draw_radar(card.affinities, size=320, labels=content["radar_labels"])
     canvas.paste(radar, (620, 160))
 
     # Lore block starts at (980, 170), wrap width 370 (up to x=1350)
-    world = load_world()
-    lore_entries = [
-        ("主系", card.primary_affinity),
-        ("灵域", card.spirit_domain),
-        ("外形", card.appearance),
-        ("性格", card.personality),
-        ("背景", card.backstory),
-        ("展示", card.ability_showcase),
-    ]
-
     lore_x = 980
     lore_y = 170
     lore_max_w = right_edge - lore_x  # 370
@@ -327,10 +364,10 @@ def compose_card(
     bottom_limit = 855
     entry_gap = 8
 
-    for label, value in lore_entries:
+    for label, value in content["entries"]:
         if lore_y > bottom_limit:
             break
-        combined = f"{label} · {value}"
+        combined = f"{label}{sep}{value}"
         wrapped = _wrap_text(draw, combined, body_f, lore_max_w)
         for ln in wrapped:
             if lore_y + line_h > bottom_limit:
@@ -344,13 +381,15 @@ def compose_card(
     # Footer at (50, 855)
     draw.text(
         (50, 855),
-        f"{world.world_name} · {card.primary_affinity} · Local ROCm",
+        content["footer"],
         fill=(100, 110, 130),
         font=small_f,
     )
 
-    # CJK font warning if no CJK font found (Latin text renders with default font)
-    if not has_cjk_font():
+    # CJK font warning if no CJK font found (Latin text renders with default font).
+    # In english fallback mode the whole card is already a visible fallback
+    # (footer ends with "· EN fallback"), so skip the warning there.
+    if not has_cjk_font() and not english:
         warn_f = _font(13)
         draw.text(
             (950, 855),

@@ -49,3 +49,9 @@ def test_clamps_scores():
     data["affinities"]["形"] = 150
     card = parse_character_json(json.dumps(data, ensure_ascii=False))
     assert card.affinities["形"] == 100
+
+
+def test_old_json_without_english_fields_valid():
+    card = parse_character_json(json.dumps(_sample(), ensure_ascii=False))
+    assert card.name_en == ""
+    assert card.lore_en == ""

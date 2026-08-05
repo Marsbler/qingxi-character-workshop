@@ -67,6 +67,9 @@ def _mock_card(
         if n != pref:
             aff[n] = 25 + (hash(n + pref) % 20)
 
+    pref_aff = world.affinity_by_zh(pref)
+    pref_en = pref_aff.name_en if pref_aff else pref
+
     if base_card is not None and revise_instruction:
         # revise path: copy and tweak appearance + image_prompt
         instr = revise_instruction
@@ -104,6 +107,13 @@ def _mock_card(
         "image_prompt": image_prompt,
         "image_negative": image_negative,
         "motion_prompt": motion_prompt,
+        "name_en": "Ling Walker",
+        "one_liner_en": f"An original character inspired by your brief ({pref_en} affinity).",
+        "lore_en": (
+            f"An original anime-style character of the {pref_en} affinity, "
+            f"with a spirit domain themed around {pref_en}. Calm and curious. "
+            f"Ability showcase: original {pref_en} techniques with cinematic flair."
+        ),
     }
     return CharacterCard.model_validate(data)
 

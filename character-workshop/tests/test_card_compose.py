@@ -65,3 +65,40 @@ def test_compose_card_no_crash_without_cjk(tmp_path, monkeypatch):
     out = tmp_path / "card.png"
     compose_card(card, Image.new("RGB", (768, 1024), (40, 60, 90)), out)
     assert out.exists()
+
+
+def test_display_content_english_fallback():
+    from src.card_compose import _display_content
+    from src.llm_role import generate_character
+    card = generate_character("空系旅人", affinity_pref="空", mock=True)
+    d = _display_content(card, english=True)
+    # all strings must be pure ASCII (no tofu possible with default font)
+    for s in [d["title"], d["subtitle"], d["footer"]]:
+        assert s and all(ord(c) < 128 for c in s)
+    for label, value in d["entries"]:
+        assert all(ord(c) < 128 for c in label)
+        assert all(ord(c) < 128 for c in value)
+    assert d["radar_labels"] and len(d["radar_labels"]) == 6
+
+
+def test_display_content_zh_mode():
+    from src.card_compose import _display_content
+    from src.llm_role import generate_character
+    card = generate_character("空系旅人", affinity_pref="空", mock=True)
+    d = _display_content(card, english=False)
+    assert d["title"] == card.name
+    assert d["radar_labels"] is None
+
+
+def test_compose_card_english_mode_renders(tmp_path, monkeypatch):
+    monkeypatch.setattr("src.card_compose._CACHED_FONT_PATH", "")
+    monkeypatch.setattr("src.card_compose._resolve_font_path", lambda: None)
+    from PIL import Image
+    from src.llm_role import generate_character
+    from src.card_compose import compose_card
+    card = generate_character("空系旅人", affinity_pref="空", mock=True)
+    out = tmp_path / "card_en.png"
+    compose_card(card, Image.new("RGB", (768, 1024), (40, 60, 90)), out)
+    assert out.exists()
+    im = Image.open(out)
+    assert im.size[0] >= 800
