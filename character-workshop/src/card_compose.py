@@ -7,10 +7,15 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 from src.models_schema import CharacterCard
+from src.paths import ROOT
 from src.world import load_world
 
 # Module-level cache for the resolved font PATH (not the font object), so
 # repeated `_font(size)` calls skip the discovery search.
+# Sentinel semantics:
+#   None  -> not searched yet
+#   ""    -> searched, nothing found (fallback to PIL default)
+#   <str> -> resolved path to a CJK-capable font file
 _CACHED_FONT_PATH: str | None = None
 
 # Known candidate font paths (Windows, macOS, Linux).
@@ -57,12 +62,53 @@ _GLOB_ROOTS: list[str] = [
 ]
 
 
+def _font_supports_cjk(font) -> bool:
+    """Return True iff `font` actually has a glyph for a CJK codepoint.
+
+    A font without the glyph maps it to .notdef, which renders identically to
+    an unmapped codepoint (U+10FFFF, guaranteed not in any BMP font). Comparing
+    the rendered masks byte-for-byte detects this tofu case reliably.
+    """
+    try:
+        probe = font.getmask("形")
+        missing = font.getmask("\U0010FFFF")
+        return bytes(probe) != bytes(missing)
+    except Exception:
+        return False
+
+
 def _try_load(path: str, size: int) -> ImageFont.ImageFont | None:
     """Try to load a truetype font; return None on OSError."""
     try:
         return ImageFont.truetype(path, size=size)
     except OSError:
         return None
+
+
+def _candidate_ok(path: str, size: int = 20) -> bool:
+    """True iff `path` loads AND renders CJK glyphs."""
+    f = _try_load(path, size)
+    if f is None:
+        return False
+    return _font_supports_cjk(f)
+
+
+def _bundled_font_path() -> str | None:
+    """Look in the bundled assets/fonts directory for any CJK-capable font."""
+    font_dir = ROOT / "assets" / "fonts"
+    if not font_dir.is_dir():
+        return None
+    try:
+        files = sorted(
+            p for p in font_dir.iterdir()
+            if p.is_file() and p.suffix.lower() in (".otf", ".ttf", ".ttc")
+        )
+    except OSError:
+        return None
+    for p in files:
+        if _candidate_ok(str(p)):
+            return str(p)
+    return None
 
 
 def _glob_find_cjk_font() -> str | None:
@@ -81,7 +127,7 @@ def _glob_find_cjk_font() -> str | None:
                 name = p.name.lower()
                 if not any(hint in name for hint in _CJK_FONT_HINTS):
                     continue
-                if _try_load(str(p), 20) is not None:
+                if _candidate_ok(str(p)):
                     return str(p)
         except PermissionError:
             continue
@@ -102,36 +148,48 @@ def _fc_match_font() -> str | None:
     except Exception:
         return None
     candidate = out.stdout.strip()
-    if candidate and Path(candidate).exists() and _try_load(candidate, 20) is not None:
+    if candidate and Path(candidate).exists() and _candidate_ok(candidate):
         return candidate
     return None
 
 
 def _resolve_font_path() -> str | None:
-    """Resolve a CJK-capable font path via known paths, glob, then fc-match."""
+    """Resolve a CJK-capable font path via bundled, known, glob, then fc-match.
+
+    Returns the path string, or None if no CJK-capable font was found. The
+    result (including the fact-of-None) is cached in `_CACHED_FONT_PATH` using
+    the sentinel "" so the search is not repeated.
+    """
     global _CACHED_FONT_PATH
     if _CACHED_FONT_PATH is not None:
-        return _CACHED_FONT_PATH
+        return _CACHED_FONT_PATH or None
 
-    # 1. Known explicit paths.
+    # 1. Bundled fonts under assets/fonts.
+    bundled = _bundled_font_path()
+    if bundled:
+        _CACHED_FONT_PATH = bundled
+        return bundled
+
+    # 2. Known explicit paths.
     for p in _KNOWN_FONT_PATHS:
-        if Path(p).exists() and _try_load(p, 20) is not None:
+        if Path(p).exists() and _candidate_ok(p):
             _CACHED_FONT_PATH = p
             return p
 
-    # 2. Recursive glob search.
+    # 3. Recursive glob search.
     found = _glob_find_cjk_font()
     if found:
         _CACHED_FONT_PATH = found
         return found
 
-    # 3. fc-match fallback.
+    # 4. fc-match fallback.
     matched = _fc_match_font()
     if matched:
         _CACHED_FONT_PATH = matched
         return matched
 
-    # 4. Nothing found; signal fallback.
+    # 5. Nothing found; cache the sentinel so we don't re-search.
+    _CACHED_FONT_PATH = ""
     return None
 
 
@@ -146,12 +204,8 @@ def _font(size: int) -> ImageFont.ImageFont:
 
 
 def has_cjk_font() -> bool:
-    """True if a font capable of rendering CJK was found (heuristic check)."""
-    f = _font(20)
-    try:
-        return f.getbbox("形") is not None and f != ImageFont.load_default()
-    except Exception:
-        return False
+    """True if a font capable of rendering CJK was found (glyph-level check)."""
+    return _resolve_font_path() is not None
 
 
 def _wrap_text(draw, text, font, max_width):
@@ -233,28 +287,28 @@ def compose_card(
         width=2,
     )
 
-    # --- Right column ---
-    rx = 620
-    content_w = 730
-    right_edge = rx + content_w  # 1350
-    bottom_limit = 860
+    # --- Right zone: x = 600..1350 (width 750) ---
+    rx = 600
+    right_edge = 1350
+    right_w = right_edge - rx  # 750
 
     title_f = _font(40)
     oneliner_f = _font(20)
-    body_f = _font(20)
+    body_f = _font(18)
     small_f = _font(15)
 
-    # Title (name) at y=50
-    draw.text((rx, 50), card.name, fill=(240, 244, 255), font=title_f)
+    # Title (name) at (600, 40)
+    draw.text((rx, 40), card.name, fill=(240, 244, 255), font=title_f)
 
-    # one_liner at y=110
-    draw.text((rx, 110), card.one_liner, fill=(160, 180, 210), font=oneliner_f)
+    # one_liner at (600, 100), wrapped to width 750
+    for i, ln in enumerate(_wrap_text(draw, card.one_liner, oneliner_f, right_w)):
+        draw.text((rx, 100 + i * 26), ln, fill=(160, 180, 210), font=oneliner_f)
 
-    # Radar at (620, 160), size 300
-    radar = draw_radar(card.affinities, size=300)
-    canvas.paste(radar, (rx, 160))
+    # Radar at (620, 160), size 320
+    radar = draw_radar(card.affinities, size=320)
+    canvas.paste(radar, (620, 160))
 
-    # Lore block starts at (620, 490), full right-column width
+    # Lore block starts at (980, 170), wrap width 370 (up to x=1350)
     world = load_world()
     lore_entries = [
         ("主系", card.primary_affinity),
@@ -265,10 +319,13 @@ def compose_card(
         ("展示", card.ability_showcase),
     ]
 
-    lore_x = rx
-    lore_y = 490
-    lore_max_w = right_edge - lore_x  # 730
-    line_h = int(20 * 1.4)  # ~28px per line at body font size 20
+    lore_x = 980
+    lore_y = 170
+    lore_max_w = right_edge - lore_x  # 370
+    font_size = 18
+    line_h = int(font_size * 1.5)  # 27px per line
+    bottom_limit = 855
+    entry_gap = 8
 
     for label, value in lore_entries:
         if lore_y > bottom_limit:
@@ -276,12 +333,13 @@ def compose_card(
         combined = f"{label} · {value}"
         wrapped = _wrap_text(draw, combined, body_f, lore_max_w)
         for ln in wrapped:
-            if lore_y > bottom_limit:
+            if lore_y + line_h > bottom_limit:
+                draw.text((lore_x, lore_y), "…", fill=(210, 218, 230), font=body_f)
+                lore_y = bottom_limit + 1
                 break
             draw.text((lore_x, lore_y), ln, fill=(210, 218, 230), font=body_f)
             lore_y += line_h
-        # small gap between entries
-        lore_y += 4
+        lore_y += entry_gap
 
     # Footer at (50, 855)
     draw.text(
@@ -291,16 +349,13 @@ def compose_card(
         font=small_f,
     )
 
-    # CJK font warning if no CJK font found
+    # CJK font warning if no CJK font found (Latin text renders with default font)
     if not has_cjk_font():
         warn_f = _font(13)
-        warn_text = "no CJK font — install fonts-noto-cjk"
-        # bottom-right placement; measure then anchor to right edge
-        tw = draw.textlength(warn_text, font=warn_f)
         draw.text(
-            (right_edge - tw, 855),
-            warn_text,
-            fill=(200, 120, 80),
+            (950, 855),
+            "no CJK font found — run scripts/setup_fonts.sh",
+            fill=(220, 130, 60),
             font=warn_f,
         )
 

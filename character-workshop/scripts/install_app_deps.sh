@@ -25,6 +25,9 @@ if "cu" in ver and "rocm" not in ver.lower():
 print("PREFLIGHT OK")
 PY
 
+echo "==> [fonts] ensure CJK font (non-fatal)"
+bash scripts/setup_fonts.sh || echo "WARN: font setup failed; card text may be tofu"
+
 echo "==> [2/4] Install requirements.txt (no torch line)"
 python3 -m pip install -r requirements.txt
 

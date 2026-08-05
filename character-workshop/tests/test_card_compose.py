@@ -44,3 +44,24 @@ def test_compose_card_wraps_long_text(tmp_path):
     assert out.exists()
     im = Image.open(out)
     assert im.size >= (1400, 900)
+
+
+def test_font_supports_cjk_check_on_default():
+    from PIL import ImageFont
+    from src.card_compose import _font_supports_cjk
+    # PIL default font has no CJK coverage — check must return False
+    assert _font_supports_cjk(ImageFont.load_default()) is False
+
+
+def test_compose_card_no_crash_without_cjk(tmp_path, monkeypatch):
+    # simulate no CJK font anywhere
+    monkeypatch.setattr("src.card_compose._CACHED_FONT_PATH", "")
+    monkeypatch.setattr("src.card_compose._resolve_font_path", lambda: None)
+    from src.llm_role import generate_character
+    from PIL import Image
+    from src.card_compose import compose_card, has_cjk_font
+    card = generate_character("测试", mock=True)
+    assert has_cjk_font() is False
+    out = tmp_path / "card.png"
+    compose_card(card, Image.new("RGB", (768, 1024), (40, 60, 90)), out)
+    assert out.exists()

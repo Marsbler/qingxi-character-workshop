@@ -9,3 +9,8 @@ venv/
 .DS_Store
 
 .worktrees/
+
+# downloaded fonts (setup_fonts.sh)
+character-workshop/assets/fonts/*.otf
+character-workshop/assets/fonts/*.ttf
+character-workshop/assets/fonts/*.ttc
