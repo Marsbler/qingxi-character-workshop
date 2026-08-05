@@ -230,7 +230,11 @@ def _wrap_text(draw, text, font, max_width):
     return lines
 
 
-def draw_radar(affinities: dict[str, int], size: int = 400) -> Image.Image:
+def draw_radar(
+    affinities: dict[str, int],
+    size: int = 400,
+    primary: str | None = None,
+) -> Image.Image:
     world = load_world()
     names = world.affinity_names()
     img = Image.new("RGBA", (size, size), (20, 24, 32, 255))
@@ -246,18 +250,44 @@ def draw_radar(affinities: dict[str, int], size: int = 400) -> Image.Image:
             r = radius * ring
             pts.append((cx + r * math.cos(ang), cy + r * math.sin(ang)))
         draw.polygon(pts, outline=(80, 90, 110, 255))
+    # axis lines
+    for i in range(n):
+        ang = -math.pi / 2 + 2 * math.pi * i / n
+        draw.line(
+            (cx, cy, cx + radius * math.cos(ang), cy + radius * math.sin(ang)),
+            fill=(55, 62, 80, 255),
+        )
     # values
     val_pts = []
-    font = _font(14)
+    label_font = _font(14)
+    num_font = _font(12)
+    primary = primary if primary in names else None
     for i, lab in enumerate(names):
         ang = -math.pi / 2 + 2 * math.pi * i / n
         score = max(0, min(100, int(affinities.get(lab, 0))))
         r = radius * (score / 100.0)
-        val_pts.append((cx + r * math.cos(ang), cy + r * math.sin(ang)))
+        px = cx + r * math.cos(ang)
+        py = cy + r * math.sin(ang)
+        val_pts.append((px, py))
+        # vertex dot
+        draw.ellipse((px - 3, py - 3, px + 3, py + 3), fill=(150, 210, 255, 255))
         lx = cx + (radius + 30) * math.cos(ang)
         ly = cy + (radius + 30) * math.sin(ang)
-        draw.text((lx - 20, ly - 8), lab, fill=(220, 230, 240, 255), font=font)
-    draw.polygon(val_pts, fill=(80, 160, 220, 90), outline=(120, 200, 255, 255))
+        is_primary = lab == primary
+        fill = (255, 210, 120, 255) if is_primary else (220, 230, 240, 255)
+        draw.text((lx - 20, ly - 20), lab, fill=fill, font=label_font)
+        draw.text(
+            (lx - 8, ly + 2),
+            str(score),
+            fill=(150, 200, 255, 255) if is_primary else (140, 150, 170, 255),
+            font=num_font,
+        )
+    poly_fill = (80, 160, 220, 90)
+    poly_outline = (120, 200, 255, 255)
+    if primary is not None:
+        poly_fill = (200, 150, 60, 90)
+        poly_outline = (255, 200, 110, 255)
+    draw.polygon(val_pts, fill=poly_fill, outline=poly_outline)
     return img.convert("RGB")
 
 
@@ -307,7 +337,7 @@ def compose_card(
         draw.text((rx, 100 + i * 26), ln, fill=(160, 180, 210), font=oneliner_f)
 
     # Radar at (620, 160), size 320
-    radar = draw_radar(card.affinities, size=320)
+    radar = draw_radar(card.affinities, size=320, primary=card.primary_affinity)
     canvas.paste(radar, (620, 160))
 
     # Lore block starts at (980, 170), wrap width 370 (up to x=1350)

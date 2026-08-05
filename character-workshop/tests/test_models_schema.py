@@ -57,3 +57,21 @@ def test_extra_english_fields_ignored():
     data["lore_en"] = "Legacy field should not break validation"
     card = parse_character_json(json.dumps(data, ensure_ascii=False))
     assert card.primary_affinity == "Void"
+
+
+def test_all_zero_affinities_get_fallback():
+    data = _sample()
+    data["affinities"] = {n: 0 for n in load_world().affinity_names()}
+    card = parse_character_json(json.dumps(data, ensure_ascii=False))
+    assert any(v > 0 for v in card.affinities.values())
+    assert card.affinities["Void"] >= 80
+    # fallback values must be distinct-ish and within range
+    for v in card.affinities.values():
+        assert 0 < v <= 100
+
+
+def test_missing_affinity_keys_get_fallback():
+    data = _sample()
+    data["affinities"] = {}
+    card = parse_character_json(json.dumps(data, ensure_ascii=False))
+    assert any(v > 0 for v in card.affinities.values())

@@ -9,6 +9,17 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from src.world import load_world
 
 
+def _default_affinities(primary: str, names: list[str]) -> dict[str, int]:
+    """Sensible spread when the LLM produced all-zero / missing scores."""
+    scores: dict[str, int] = {}
+    for n in names:
+        if n == primary:
+            scores[n] = 88
+        else:
+            scores[n] = 25 + (abs(hash(n + primary)) % 35)
+    return scores
+
+
 class CharacterCard(BaseModel):
     name: str
     one_liner: str
@@ -38,9 +49,15 @@ class CharacterCard(BaseModel):
         if self.primary_affinity not in names:
             raise ValueError(f"primary_affinity must be one of {names}")
         fixed: dict[str, int] = {}
+        any_nonzero = False
         for n in names:
             raw = int(self.affinities.get(n, 0))
+            if raw > 0:
+                any_nonzero = True
             fixed[n] = max(0, min(100, raw))
+        if not any_nonzero:
+            # LLM failed to provide meaningful scores -> synthesize a good spread
+            fixed = _default_affinities(self.primary_affinity, names)
         self.affinities = fixed
         return self
 
