@@ -25,7 +25,7 @@ def main() -> int:
                 affinity_pref=case.get("expect_affinity"),
                 mock=True,
             )
-            assert card.primary_affinity in world.affinity_zh_names()
+            assert card.primary_affinity in world.affinity_names()
             assert card.image_prompt
             ok += 1
             print("OK", case["id"], card.name, card.primary_affinity)

@@ -1,5 +1,5 @@
 llm:
-  # 3B: good JSON compliance, ~6GB FP16 — coexists with SDXL on 24GB.
+  # 3B: good JSON compliance, ~6GB FP16 - coexists with SDXL on 24GB.
   # 7B (Qwen/Qwen2.5-7B-Instruct) is better quality if VRAM allows.
   model_id: Qwen/Qwen2.5-3B-Instruct
   max_new_tokens: 1024
@@ -21,7 +21,7 @@ image:
 
 video:
   enabled: true
-  # Set after ROCm smoke test — placeholder id
+  # Set after ROCm smoke test - placeholder id
   model_id: "THUDM/CogVideoX-2b"
   backend: auto   # auto | cogvideox | animatediff | mock
   num_frames: 49

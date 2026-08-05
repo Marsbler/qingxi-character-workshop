@@ -230,19 +230,14 @@ def _wrap_text(draw, text, font, max_width):
     return lines
 
 
-def draw_radar(
-    affinities: dict[str, int],
-    size: int = 400,
-    labels: list[str] | None = None,
-) -> Image.Image:
+def draw_radar(affinities: dict[str, int], size: int = 400) -> Image.Image:
     world = load_world()
-    zh_names = world.affinity_zh_names()
-    display_labels = labels if labels is not None else zh_names
+    names = world.affinity_names()
     img = Image.new("RGBA", (size, size), (20, 24, 32, 255))
     draw = ImageDraw.Draw(img)
     cx = cy = size / 2
     radius = size * 0.35
-    n = len(display_labels)
+    n = len(names)
     # grid
     for ring in (0.25, 0.5, 0.75, 1.0):
         pts = []
@@ -254,54 +249,16 @@ def draw_radar(
     # values
     val_pts = []
     font = _font(14)
-    for i, lab in enumerate(display_labels):
+    for i, lab in enumerate(names):
         ang = -math.pi / 2 + 2 * math.pi * i / n
-        zh_key = zh_names[i]
-        score = max(0, min(100, int(affinities.get(zh_key, 0))))
+        score = max(0, min(100, int(affinities.get(lab, 0))))
         r = radius * (score / 100.0)
         val_pts.append((cx + r * math.cos(ang), cy + r * math.sin(ang)))
-        lx = cx + (radius + 28) * math.cos(ang)
-        ly = cy + (radius + 28) * math.sin(ang)
-        draw.text((lx - 8, ly - 8), lab, fill=(220, 230, 240, 255), font=font)
+        lx = cx + (radius + 30) * math.cos(ang)
+        ly = cy + (radius + 30) * math.sin(ang)
+        draw.text((lx - 20, ly - 8), lab, fill=(220, 230, 240, 255), font=font)
     draw.polygon(val_pts, fill=(80, 160, 220, 90), outline=(120, 200, 255, 255))
     return img.convert("RGB")
-
-
-def _display_content(card: CharacterCard, english: bool) -> dict:
-    world = load_world()
-    if not english:
-        return {
-            "title": card.name,
-            "subtitle": card.one_liner,
-            "radar_labels": None,
-            "entries": [
-                ("主系", card.primary_affinity),
-                (world.spirit_domain.name_zh, card.spirit_domain),
-                ("外形", card.appearance),
-                ("性格", card.personality),
-                ("背景", card.backstory),
-                ("展示", card.ability_showcase),
-            ],
-            "footer": f"{world.world_name} · {card.primary_affinity} · Local ROCm",
-        }
-    aff = world.affinity_by_zh(card.primary_affinity)
-    aff_en = aff.name_en if aff else card.primary_affinity
-    title = card.name_en.strip() or f"{aff_en} Envoy"
-    subtitle = card.one_liner_en.strip() or card.image_prompt[:90]
-    lore = card.lore_en.strip() or (
-        f"Appearance: {card.image_prompt}. Ability: {card.motion_prompt or 'original ' + aff_en + ' techniques'}."
-    )
-    entries = [
-        ("Affinity", aff_en),
-        (world.spirit_domain.name_en, lore),
-    ]
-    return {
-        "title": title,
-        "subtitle": subtitle,
-        "radar_labels": [a.name_en for a in world.affinities],
-        "entries": entries,
-        "footer": f"{world.world_name_en} | {aff_en} | Local ROCm | EN fallback",
-    }
 
 
 def compose_card(
@@ -315,6 +272,8 @@ def compose_card(
     w, h = canvas_size
     canvas = Image.new("RGB", (w, h), (18, 20, 28))
     draw = ImageDraw.Draw(canvas)
+
+    world = load_world()
 
     # --- Left column: portrait thumbnail ---
     pw, ph = 500, 760
@@ -340,19 +299,15 @@ def compose_card(
     body_f = _font(18)
     small_f = _font(15)
 
-    english = not has_cjk_font()
-    content = _display_content(card, english)
-    sep = ": " if english else " · "
-
     # Title (name) at (600, 40)
-    draw.text((rx, 40), content["title"], fill=(240, 244, 255), font=title_f)
+    draw.text((rx, 40), card.name, fill=(240, 244, 255), font=title_f)
 
     # one_liner at (600, 100), wrapped to width 750
-    for i, ln in enumerate(_wrap_text(draw, content["subtitle"], oneliner_f, right_w)):
+    for i, ln in enumerate(_wrap_text(draw, card.one_liner, oneliner_f, right_w)):
         draw.text((rx, 100 + i * 26), ln, fill=(160, 180, 210), font=oneliner_f)
 
     # Radar at (620, 160), size 320
-    radar = draw_radar(card.affinities, size=320, labels=content["radar_labels"])
+    radar = draw_radar(card.affinities, size=320)
     canvas.paste(radar, (620, 160))
 
     # Lore block starts at (980, 170), wrap width 370 (up to x=1350)
@@ -364,14 +319,23 @@ def compose_card(
     bottom_limit = 855
     entry_gap = 8
 
-    for label, value in content["entries"]:
+    entries = [
+        ("Affinity", card.primary_affinity),
+        (world.spirit_domain.name, card.spirit_domain),
+        ("Appearance", card.appearance),
+        ("Personality", card.personality),
+        ("Backstory", card.backstory),
+        ("Showcase", card.ability_showcase),
+    ]
+
+    for label, value in entries:
         if lore_y > bottom_limit:
             break
-        combined = f"{label}{sep}{value}"
+        combined = f"{label}: {value}"
         wrapped = _wrap_text(draw, combined, body_f, lore_max_w)
         for ln in wrapped:
             if lore_y + line_h > bottom_limit:
-                draw.text((lore_x, lore_y), "…", fill=(210, 218, 230), font=body_f)
+                draw.text((lore_x, lore_y), "...", fill=(210, 218, 230), font=body_f)
                 lore_y = bottom_limit + 1
                 break
             draw.text((lore_x, lore_y), ln, fill=(210, 218, 230), font=body_f)
@@ -381,22 +345,10 @@ def compose_card(
     # Footer at (50, 855)
     draw.text(
         (50, 855),
-        content["footer"],
+        f"{world.world_name} | {card.primary_affinity} | Local ROCm",
         fill=(100, 110, 130),
         font=small_f,
     )
-
-    # CJK font warning if no CJK font found (Latin text renders with default font).
-    # In english fallback mode the whole card is already a visible fallback
-    # (footer ends with "· EN fallback"), so skip the warning there.
-    if not has_cjk_font() and not english:
-        warn_f = _font(13)
-        draw.text(
-            (950, 855),
-            "no CJK font found — run scripts/setup_fonts.sh",
-            fill=(220, 130, 60),
-            font=warn_f,
-        )
 
     canvas.save(out_path, format="PNG")
     return out_path

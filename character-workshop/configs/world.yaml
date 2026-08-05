@@ -1,6 +1,6 @@
-world_name: "青汐灵隙"
-world_name_en: "Qingxi Rift"
-tagline: "现代都市缝隙中，灵力以六系流转，人人可觉醒属于自己的灵域。"
+world_name: "Qingxi Rift"
+world_name_zh: "青汐灵隙"
+tagline: "In the cracks of a modern city, spirit energy flows through six affinities — and anyone may awaken a domain of their own."
 ip_policy: >
   Never use names, places, or distinctive proper nouns from existing
   copyrighted anime/games/films (including but not limited to any
@@ -8,40 +8,40 @@ ip_policy: >
 
 affinities:
   - id: form
+    name: "Form"
     name_zh: "形"
-    name_en: "Form"
-    description: "塑形与物质外形的改写。"
+    description: "Reshaping matter and outer form."
     visual_keywords: ["shapeshift silhouette", "clay-like matter", "shadow morph"]
   - id: mind
+    name: "Mind"
     name_zh: "念"
-    name_en: "Mind"
-    description: "意念、符文与精神干涉。"
+    description: "Willpower, runes and psychic interference."
     visual_keywords: ["runes", "psychic ripples", "pale blue glow"]
   - id: life
+    name: "Life"
     name_zh: "生"
-    name_en: "Life"
-    description: "生长、治愈与生机。"
+    description: "Growth, healing and vitality."
     visual_keywords: ["vines", "healing motes", "emerald light"]
   - id: matter
+    name: "Matter"
     name_zh: "质"
-    name_en: "Matter"
-    description: "密度、金属与重力质感。"
+    description: "Density, metal and gravity textures."
     visual_keywords: ["metal crystal", "gravity rings", "ore sheen"]
   - id: void
+    name: "Void"
     name_zh: "空"
-    name_en: "Void"
-    description: "空间裂隙与折叠。"
+    description: "Spatial rifts and folded space."
     visual_keywords: ["spatial rift", "folded paper space", "deep purple cracks"]
   - id: time
+    name: "Time"
     name_zh: "时"
-    name_en: "Time"
-    description: "残影、迟滞与瞬间凝固。"
+    description: "Afterimages, delay and frozen instants."
     visual_keywords: ["afterimages", "amber freeze", "clock pendulum motifs"]
 
 spirit_domain:
+  name: "Spirit Domain"
   name_zh: "灵域"
-  name_en: "Spirit Domain"
-  description: "角色内在的能力空间，决定战斗姿态与特效气质。"
+  description: "The character's inner ability space, shaping combat posture and effect aesthetics."
 
 style_guide:
   art: "anime character portrait, clean lineart, cel shading, expressive eyes, detailed hair, masterpiece"
@@ -52,3 +52,4 @@ banned_substrings:
   - "老君"
   - "无限"
   - "Luo Xiaohei"
+  - "The Legend of Luo Xiaohei"

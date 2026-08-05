@@ -22,9 +22,6 @@ class CharacterCard(BaseModel):
     image_prompt: str
     image_negative: str = ""
     motion_prompt: str = ""
-    name_en: str = ""
-    one_liner_en: str = ""
-    lore_en: str = ""
 
     @field_validator("name", "one_liner", "appearance", "image_prompt")
     @classmethod
@@ -37,7 +34,7 @@ class CharacterCard(BaseModel):
     @model_validator(mode="after")
     def check_affinities(self) -> CharacterCard:
         world = load_world()
-        names = world.affinity_zh_names()
+        names = world.affinity_names()
         if self.primary_affinity not in names:
             raise ValueError(f"primary_affinity must be one of {names}")
         fixed: dict[str, int] = {}
@@ -52,14 +49,15 @@ class CharacterCard(BaseModel):
             f"# {self.name}",
             f"*{self.one_liner}*",
             "",
-            f"**主系：** {self.primary_affinity}",
-            f"**外形：** {self.appearance}",
-            f"**性格：** {self.personality}",
-            f"**背景：** {self.backstory}",
-            f"**灵域：** {self.spirit_domain}",
-            f"**能力展示：** {self.ability_showcase}",
+            f"**Affinity:** {self.primary_affinity}",
+            f"**Appearance:** {self.appearance}",
+            f"**Personality:** {self.personality}",
+            f"**Backstory:** {self.backstory}",
+            f"**Spirit Domain:** {self.spirit_domain}",
+            f"**Ability Showcase:** {self.ability_showcase}",
             "",
-            "**六系：** " + ", ".join(f"{k} {v}" for k, v in self.affinities.items()),
+            "**Six Affinities:** "
+            + ", ".join(f"{k} {v}" for k, v in self.affinities.items()),
         ]
         return "\n".join(lines)
 

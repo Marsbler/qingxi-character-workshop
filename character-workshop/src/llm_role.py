@@ -26,15 +26,14 @@ def build_system_prompt(world: WorldConfig | None = None) -> str:
     parts = [
         role,
         "",
-        f"# World: {world.world_name} ({world.world_name_en})",
+        f"# World: {world.world_name}",
         f"tagline: {world.tagline}",
         f"ip_policy: {world.ip_policy}",
         "",
-        "Affinities (zh -> en): "
-        + ", ".join(f"{a.name_zh}/{a.name_en}" for a in world.affinities),
+        "Affinities: "
+        + ", ".join(f"{a.name}" for a in world.affinities),
         "spirit_domain: "
-        + f"{world.spirit_domain.name_zh}/{world.spirit_domain.name_en} - "
-        + world.spirit_domain.description,
+        + f"{world.spirit_domain.name} - " + world.spirit_domain.description,
         "",
         f"style_art: {world.style_art}",
         f"style_avoid: {world.style_avoid}",
@@ -48,6 +47,33 @@ def build_system_prompt(world: WorldConfig | None = None) -> str:
     return "\n".join(parts)
 
 
+_MOCK_ADJ = [
+    "Azure", "Ember", "Silent", "Paper", "Verdant", "Umbral",
+    "Gilded", "Hollow", "Radiant", "Icy",
+]
+_MOCK_NOUN = [
+    "Walker", "Weaver", "Warden", "Seeker", "Scribe", "Ranger",
+    "Herald", "Vagrant", "Keeper", "Drifter",
+]
+
+
+def _mock_name(text: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9]+", "", text or "").lower()
+    seed = abs(hash(cleaned or "anonymous"))
+    return f"{_MOCK_ADJ[seed % len(_MOCK_ADJ)]} {_MOCK_NOUN[(seed // 7) % len(_MOCK_NOUN)]}"
+
+
+def _guess_affinity(text: str, world: WorldConfig) -> str | None:
+    low = (text or "").lower()
+    for a in world.affinities:
+        if a.name.lower() in low:
+            return a.name
+        # allow zh input convenience
+        if a.name_zh and a.name_zh in (text or ""):
+            return a.name
+    return None
+
+
 def _mock_card(
     user_text: str,
     affinity_pref: str | None = None,
@@ -55,81 +81,48 @@ def _mock_card(
     revise_instruction: str | None = None,
 ) -> CharacterCard:
     world = load_world()
-    names = world.affinity_zh_names()
-    pref = affinity_pref or _guess_affinity(user_text, names) or names[0]
+    names = world.affinity_names()
+    pref = affinity_pref or _guess_affinity(user_text, world) or names[0]
     if pref not in names:
         raise ValueError(f"affinity_pref must be one of {names}, got {pref!r}")
 
     aff = {n: 30 for n in names}
     aff[pref] = 90
-    # spread a couple of secondary scores
     for n in names:
         if n != pref:
-            aff[n] = 25 + (hash(n + pref) % 20)
+            aff[n] = 25 + (abs(hash(n + pref)) % 20)
 
-    pref_aff = world.affinity_by_zh(pref)
-    pref_en = pref_aff.name_en if pref_aff else pref
+    pref_aff = world.affinity_by_name(pref)
+    kw = ", ".join(pref_aff.visual_keywords) if pref_aff else ""
 
     if base_card is not None and revise_instruction:
-        # revise path: copy and tweak appearance + image_prompt
         instr = revise_instruction
-        new_appearance = f"{base_card.appearance}（修订：{instr}）"
-        new_image = f"{base_card.image_prompt}, revised: {instr}"
+        new_appearance = f"{base_card.appearance} (revised: {instr})"
+        new_image = f"{base_card.image_prompt}, {instr}"
         return base_card.model_copy(
             update={"appearance": new_appearance, "image_prompt": new_image}
         )
 
-    # fresh mock card
-    name = _mock_name(user_text)
-    one_liner = f"由「{user_text}」启发的原创角色"
-    appearance = "原创角色外形，简洁动漫风格"
-    personality = "性格待展开"
-    backstory = f"在{world.world_name}的街角长大，与{pref}系灵力相伴。"
-    spirit_domain = f"以{pref}系为主的内在灵域"
-    ability_showcase = f"释放{pref}系灵力，展现原创招式"
-    image_prompt = (
-        f"anime character, {pref} affinity theme, "
-        f"{world.style_art}"
-    )
-    image_negative = world.style_avoid
-    motion_prompt = f"camera slow orbit, {pref} affinity particles drifting"
-
     data = {
-        "name": name,
-        "one_liner": one_liner,
-        "appearance": appearance,
-        "personality": personality,
-        "backstory": backstory,
+        "name": _mock_name(user_text),
+        "one_liner": "An original character inspired by your brief.",
+        "appearance": "Original anime-style character design, clean silhouette.",
+        "personality": "Calm and curious.",
+        "backstory": (
+            f"Grew up on a street corner of the {world.world_name}, "
+            f"bonded with {pref} energy."
+        ),
         "primary_affinity": pref,
         "affinities": aff,
-        "spirit_domain": spirit_domain,
-        "ability_showcase": ability_showcase,
-        "image_prompt": image_prompt,
-        "image_negative": image_negative,
-        "motion_prompt": motion_prompt,
-        "name_en": "Ling Walker",
-        "one_liner_en": f"An original character inspired by your brief ({pref_en} affinity).",
-        "lore_en": (
-            f"An original anime-style character of the {pref_en} affinity, "
-            f"with a spirit domain themed around {pref_en}. Calm and curious. "
-            f"Ability showcase: original {pref_en} techniques with cinematic flair."
+        "spirit_domain": f"An inner domain themed around {pref}.",
+        "ability_showcase": f"Channels {pref} energy in an original signature move.",
+        "image_prompt": (
+            f"anime character portrait, {pref} affinity theme, {kw}, {world.style_art}"
         ),
+        "image_negative": world.style_avoid,
+        "motion_prompt": f"camera slow orbit, {kw}, cinematic lighting",
     }
     return CharacterCard.model_validate(data)
-
-
-def _guess_affinity(text: str, names: list[str]) -> str | None:
-    for n in names:
-        if n in text:
-            return n
-    return None
-
-
-def _mock_name(text: str) -> str:
-    # derive a short original zh name from user text
-    cleaned = re.sub(r"[，,。.！!？? \s]+", "", text)
-    base = cleaned[:2] if cleaned else "无名"
-    return f"{base}灵"
 
 
 def generate_character(
@@ -141,9 +134,7 @@ def generate_character(
 ) -> CharacterCard:
     world = load_world()
 
-    # decide mock vs real
     if mock is None:
-        # default to mock unless transformers is importable
         try:
             import transformers  # noqa: F401
             mock = False
@@ -285,19 +276,19 @@ def _generate_with_transformers(
     system_prompt = build_system_prompt(world)
     repair = _read("repair_json.txt")
 
-    if affinity_pref and affinity_pref not in world.affinity_zh_names():
+    if affinity_pref and affinity_pref not in world.affinity_names():
         raise ValueError(
-            f"affinity_pref must be one of {world.affinity_zh_names()}, "
+            f"affinity_pref must be one of {world.affinity_names()}, "
             f"got {affinity_pref!r}"
         )
 
     user_content = user_text
     if affinity_pref:
-        user_content += f"\n主系偏好：{affinity_pref}"
+        user_content += f"\nPreferred affinity: {affinity_pref}"
     if base_card is not None and revise_instruction:
         user_content += (
-            f"\n原角色：{base_card.model_dump_json()}\n"
-            f"修订要求：{revise_instruction}"
+            f"\nOriginal character: {base_card.model_dump_json()}\n"
+            f"Revision request: {revise_instruction}"
         )
 
     messages = [
@@ -306,14 +297,12 @@ def _generate_with_transformers(
         {"role": "user", "content": user_content},
     ]
 
-    # Attempt 1: greedy — most reliable for strict JSON output
     raw = _chat_generate(messages, max_new_tokens=max_new_tokens, greedy=True)
     try:
         return parse_character_json(raw)
     except Exception as e1:
         _dump_debug(raw, "attempt1")
 
-    # Attempt 2: repair with greedy decode
     repair_messages = messages + [
         {"role": "assistant", "content": raw},
         {"role": "user", "content": repair},

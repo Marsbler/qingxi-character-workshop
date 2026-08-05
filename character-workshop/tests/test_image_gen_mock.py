@@ -11,7 +11,7 @@ from src.llm_role import generate_character
 
 
 def test_mock_portrait(tmp_path):
-    card = generate_character("红发质系武士", affinity_pref="质", mock=True)
+    card = generate_character("A Matter warrior with red hair", affinity_pref="Matter", mock=True)
     out = tmp_path / "p.png"
     path = generate_portrait(card, out_path=out, ref_image=None, mock=True)
     assert path.exists()

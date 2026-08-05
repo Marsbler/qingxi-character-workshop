@@ -1,24 +1,24 @@
-{"id":"case01","user_text":"青衣空系旅人，背着纸灯笼","has_ref":false,"expect_affinity":"空","notes":"demo void traveler"}
-{"id":"case02","user_text":"白发生系治愈师，随身带着一盆会动的苔藓","has_ref":false,"expect_affinity":"生","notes":"demo life healer"}
-{"id":"case03","user_text":"红甲质系重装，肩扛矿晶盾","has_ref":false,"expect_affinity":"质","notes":"demo matter heavy"}
-{"id":"case04","user_text":"银发念系符文师，眼底浮动淡蓝涟漪","has_ref":false,"expect_affinity":"念","notes":"demo mind runes"}
-{"id":"case05","user_text":"形系街头艺人，外套会像黏土一样变形","has_ref":false,"expect_affinity":"形","notes":"demo form shapeshift"}
-{"id":"case06","user_text":"时系守钟人，袖口挂着停摆怀表","has_ref":false,"expect_affinity":"时","notes":"demo time keeper"}
-{"id":"case07","user_text":"短发","has_ref":false,"notes":"short prompt minimal"}
-{"id":"case08","user_text":"少年","has_ref":false,"notes":"short one-word-ish"}
-{"id":"case09","user_text":"雨夜外卖骑手，想觉醒灵域","has_ref":false,"notes":"urban slice-of-life no affinity lock"}
-{"id":"case10","user_text":"图书馆管理员，安静，喜欢整理旧地图","has_ref":false,"notes":"personality-forward"}
-{"id":"case11","user_text":"空系：能折叠地铁车厢间隙的通勤者","has_ref":false,"expect_affinity":"空","notes":"explicit affinity keyword"}
-{"id":"case12","user_text":"生系园艺社社长，手套总沾着泥土","has_ref":false,"expect_affinity":"生","notes":"life club president"}
-{"id":"case13","user_text":"质系焊工，火花里听见金属低语","has_ref":false,"expect_affinity":"质","notes":"matter welder"}
-{"id":"case14","user_text":"念系心理咨询师，指尖会画出安抚符文","has_ref":false,"expect_affinity":"念","notes":"mind counselor"}
-{"id":"case15","user_text":"形系面具工匠，每副面具都能短暂改写轮廓","has_ref":false,"expect_affinity":"形","notes":"form mask maker"}
-{"id":"case16","user_text":"时系田径教练，能让队员看见半秒后的落脚点","has_ref":false,"expect_affinity":"时","notes":"time coach"}
-{"id":"case17","user_text":"想做一个像罗小黑那样的黑猫角色","has_ref":false,"expect_affinity":"形","notes":"banned IP attempt; mock still returns valid affinity"}
+{"id":"case01","user_text":"A Void traveler in teal robes carrying a paper lantern","has_ref":false,"expect_affinity":"Void","notes":"demo void traveler"}
+{"id":"case02","user_text":"A white-haired Life healer who keeps a pot of living moss","has_ref":false,"expect_affinity":"Life","notes":"demo life healer"}
+{"id":"case03","user_text":"A Matter heavy-armor fighter with a mineral crystal shield on her shoulder","has_ref":false,"expect_affinity":"Matter","notes":"demo matter heavy"}
+{"id":"case04","user_text":"A silver-haired Mind rune master with pale blue ripples in her eyes","has_ref":false,"expect_affinity":"Mind","notes":"demo mind runes"}
+{"id":"case05","user_text":"A Form street performer whose jacket reshapes like clay","has_ref":false,"expect_affinity":"Form","notes":"demo form shapeshift"}
+{"id":"case06","user_text":"A Time clock keeper with a stopped pocket watch on his sleeve","has_ref":false,"expect_affinity":"Time","notes":"demo time keeper"}
+{"id":"case07","user_text":"Short hair","has_ref":false,"notes":"short prompt minimal"}
+{"id":"case08","user_text":"A young man","has_ref":false,"notes":"short one-line-ish"}
+{"id":"case09","user_text":"A rainy-night food delivery rider who wants to awaken a spirit domain","has_ref":false,"notes":"urban slice-of-life no affinity lock"}
+{"id":"case10","user_text":"A quiet librarian who likes restoring old maps","has_ref":false,"notes":"personality-forward"}
+{"id":"case11","user_text":"Void: a commuter who can fold gaps between subway cars","has_ref":false,"expect_affinity":"Void","notes":"explicit affinity keyword"}
+{"id":"case12","user_text":"Life: the gardening club president whose gloves are always dusty with soil","has_ref":false,"expect_affinity":"Life","notes":"life club president"}
+{"id":"case13","user_text":"Matter: a welder who hears metal whispering in the sparks","has_ref":false,"expect_affinity":"Matter","notes":"matter welder"}
+{"id":"case14","user_text":"Mind: a counselor who draws soothing runes with her fingertips","has_ref":false,"expect_affinity":"Mind","notes":"mind counselor"}
+{"id":"case15","user_text":"Form: a mask maker whose masks briefly rewrite silhouettes","has_ref":false,"expect_affinity":"Form","notes":"form mask maker"}
+{"id":"case16","user_text":"Time: a track coach who lets runners see their landing half a second early","has_ref":false,"expect_affinity":"Time","notes":"time coach"}
+{"id":"case17","user_text":"I want a black-cat character like Luo Xiaohei","has_ref":false,"expect_affinity":"Form","notes":"banned IP attempt; mock still returns valid affinity"}
 {"id":"case18","user_text":"   ","has_ref":false,"notes":"boundary whitespace-only; mock should still produce card"}
-{"id":"case19","user_text":"在青汐灵隙边缘长大的双生兄妹设定草稿：哥哥偏空系善于开裂隙走捷径，妹妹偏时系能把争吵定格成慢动作；他们共用一间临街茶馆二楼，墙上贴满自制灵域示意图，茶馆招牌是折叠纸鹤，客人以为只是装饰。请生成其中哥哥的完整角色卡，强调现代都市缝隙感、非战斗日常也能用灵力的细节，以及与妹妹的牵绊但不写成双人卡。","has_ref":false,"expect_affinity":"空","notes":"long boundary text"}
-{"id":"case20","user_text":"夜市摊主，卖糖画，偶尔用灵力让糖丝悬空三秒","has_ref":false,"notes":"everyday ability showcase"}
-{"id":"case21","user_text":"退役消防员，质系护盾，胸口旧烫伤结成矿纹","has_ref":false,"expect_affinity":"质","notes":"heroic matter"}
-{"id":"case22","user_text":"无人机飞手，空系，把信号死角叠成捷径","has_ref":false,"expect_affinity":"空","notes":"tech void mix"}
-{"id":"case23","user_text":"小学音乐老师，念系，用哼唱稳住躁动课堂","has_ref":false,"expect_affinity":"念","notes":"soft mind"}
-{"id":"case24","user_text":"地下拳馆陪练，形系，出拳时影子多出一只手","has_ref":false,"expect_affinity":"形","notes":"combat form light"}
+{"id":"case19","user_text":"Twin siblings who grew up on the edge of Qingxi Rift: the brother leans Void and can tear shortcuts through cracks; the sister leans Time and can freeze arguments into slow motion. They share the second floor of a street teahouse, walls covered with hand-drawn spirit-domain diagrams, a folded-paper crane on the sign that guests mistake for decoration. Generate the brother's full character card, emphasizing a modern urban-rift feel, everyday non-combat uses of spirit power, and the bond with his sister without writing a duo card.","has_ref":false,"expect_affinity":"Void","notes":"long boundary text"}
+{"id":"case20","user_text":"A night-market candy-sugar artist who sometimes lets sugar strands float for three seconds","has_ref":false,"notes":"everyday ability showcase"}
+{"id":"case21","user_text":"A retired firefighter with a Matter shield and mineral-patterned burn scars on his chest","has_ref":false,"expect_affinity":"Matter","notes":"heroic matter"}
+{"id":"case22","user_text":"A drone pilot who folds signal dead zones into shortcuts","has_ref":false,"expect_affinity":"Void","notes":"tech void mix"}
+{"id":"case23","user_text":"A primary-school music teacher who steadies a restless class by humming","has_ref":false,"expect_affinity":"Mind","notes":"soft mind"}
+{"id":"case24","user_text":"A sparring partner at an underground boxing gym whose shadow grows an extra hand when he punches","has_ref":false,"expect_affinity":"Form","notes":"combat form light"}

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import time
@@ -81,7 +81,7 @@ def generate_card_job(
     }
 
     try:
-        _emit(progress_cb, JobState.PLANNING, "结构化角色设定…")
+        _emit(progress_cb, JobState.PLANNING, "Planning character...")
         t1 = time.time()
         card = generate_character(
             user_text=user_text,
@@ -93,7 +93,7 @@ def generate_card_job(
             card.model_dump_json(indent=2, ensure_ascii=False), encoding="utf-8"
         )
 
-        _emit(progress_cb, JobState.IMAGING, "绘制立绘…")
+        _emit(progress_cb, JobState.IMAGING, "Painting portrait...")
         t2 = time.time()
         portrait_path = job_dir / "portrait.png"
         ref = None
@@ -103,7 +103,7 @@ def generate_card_job(
         generate_portrait(card, portrait_path, ref_image=ref, mock=mock)
         meta["timings"]["image_sec"] = round(time.time() - t2, 3)
 
-        _emit(progress_cb, JobState.COMPOSING, "合成角色卡…")
+        _emit(progress_cb, JobState.COMPOSING, "Composing card...")
         t3 = time.time()
         card_path = job_dir / "card.png"
         compose_card(card, Image.open(portrait_path), card_path)
@@ -114,7 +114,7 @@ def generate_card_job(
             encoding="utf-8",
         )
 
-        _emit(progress_cb, JobState.READY, "角色卡已就绪")
+        _emit(progress_cb, JobState.READY, "Card ready")
         return JobResult(
             job_id=job_id,
             state=JobState.READY,
@@ -147,7 +147,7 @@ def revise_job(
     raw = (job_dir / "character.json").read_text(encoding="utf-8")
     base = CharacterCard.model_validate_json(raw)
     try:
-        _emit(progress_cb, JobState.PLANNING, "根据修订更新设定…")
+        _emit(progress_cb, JobState.PLANNING, "Applying revision...")
         card = generate_character(
             user_text=base.one_liner,
             mock=mock,
@@ -157,14 +157,14 @@ def revise_job(
         (job_dir / "character.json").write_text(
             card.model_dump_json(indent=2, ensure_ascii=False), encoding="utf-8"
         )
-        _emit(progress_cb, JobState.IMAGING, "重绘立绘…")
+        _emit(progress_cb, JobState.IMAGING, "Re-painting portrait...")
         portrait_path = job_dir / "portrait.png"
         ref = Image.open(job_dir / "ref.png") if (job_dir / "ref.png").exists() else None
         generate_portrait(card, portrait_path, ref_image=ref, mock=mock)
-        _emit(progress_cb, JobState.COMPOSING, "重新合成…")
+        _emit(progress_cb, JobState.COMPOSING, "Re-composing card...")
         card_path = job_dir / "card.png"
         compose_card(card, Image.open(portrait_path), card_path)
-        _emit(progress_cb, JobState.READY, "修订完成")
+        _emit(progress_cb, JobState.READY, "Revision complete")
         return JobResult(
             job_id=job_id,
             state=JobState.READY,
@@ -196,7 +196,7 @@ def animate_job(
     )
     card_path = job_dir / "card.png"
     try:
-        _emit(progress_cb, JobState.ANIMATING, "生成能力动画…")
+        _emit(progress_cb, JobState.ANIMATING, "Generating ability animation...")
         unload_image_models()
         video_path = job_dir / "ability.mp4"
         path, err = generate_ability_video(
@@ -206,7 +206,7 @@ def animate_job(
             mock=mock,
         )
         if err:
-            _emit(progress_cb, JobState.READY, f"动画失败（角色卡仍可用）：{err}")
+            _emit(progress_cb, JobState.READY, f"Animation failed (card still usable): {err}")
             return JobResult(
                 job_id=job_id,
                 state=JobState.READY,
@@ -218,7 +218,7 @@ def animate_job(
                 error=err,
                 failed_step="animate",
             )
-        _emit(progress_cb, JobState.DONE, "动画完成")
+        _emit(progress_cb, JobState.DONE, "Animation complete")
         return JobResult(
             job_id=job_id,
             state=JobState.DONE,

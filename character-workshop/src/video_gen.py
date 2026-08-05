@@ -71,7 +71,7 @@ def _mock_video(portrait_path: Path, out_path: Path) -> tuple[Path, None]:
         subprocess.run(cmd, check=True, capture_output=True)
         return out_path, None
     except (FileNotFoundError, subprocess.CalledProcessError):
-        # fallback: save a copy as png sequence message — still create tiny placeholder file
+        # fallback: save a copy as png sequence message - still create tiny placeholder file
         img = Image.open(portrait_path).convert("RGB")
         # write a minimal valid-enough placeholder: animated webp if possible
         frames = [img]
@@ -93,7 +93,7 @@ def _mock_video(portrait_path: Path, out_path: Path) -> tuple[Path, None]:
 def _cogvideox(
     portrait_path: Path, motion_prompt: str, out_path: Path, cfg: dict
 ) -> Path:
-    """Real path — implement fully on Radeon Cloud after smoke test.
+    """Real path - implement fully on Radeon Cloud after smoke test.
 
     Keep import inside function. Raise on failure so caller can degrade.
     """

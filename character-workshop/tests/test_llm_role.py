@@ -9,19 +9,26 @@ from src.models_schema import CharacterCard
 
 def test_mock_generate_character():
     card = generate_character(
-        user_text="喜欢折纸的少年，空系",
-        affinity_pref="空",
+        user_text="A boy who loves origami, Void affinity",
+        affinity_pref="Void",
         mock=True,
     )
     assert isinstance(card, CharacterCard)
-    assert card.primary_affinity == "空"
+    assert card.primary_affinity == "Void"
     assert card.image_prompt
 
 
-def test_mock_card_has_english_fields():
-    from src.llm_role import generate_character
-    card = generate_character("生系治愈师", affinity_pref="生", mock=True)
-    assert card.name_en
-    assert card.one_liner_en
-    assert card.lore_en
-    assert all(ord(c) < 128 for c in card.lore_en)
+def test_mock_card_all_english():
+    card = generate_character("Life healer girl", affinity_pref="Life", mock=True)
+    for field in (
+        card.name,
+        card.one_liner,
+        card.appearance,
+        card.personality,
+        card.backstory,
+        card.spirit_domain,
+        card.ability_showcase,
+        card.image_prompt,
+        card.motion_prompt,
+    ):
+        assert all(ord(c) < 128 for c in field), f"non-ASCII in field: {field!r}"
