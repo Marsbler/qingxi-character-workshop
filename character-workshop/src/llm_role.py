@@ -297,12 +297,16 @@ def _generate_with_transformers(
         {"role": "user", "content": user_content},
     ]
 
+    # Attempt 1: greedy — most reliable for strict JSON output
+    first_error: Exception | None = None
     raw = _chat_generate(messages, max_new_tokens=max_new_tokens, greedy=True)
     try:
         return parse_character_json(raw)
-    except Exception as e1:
+    except Exception as e:
+        first_error = e
         _dump_debug(raw, "attempt1")
 
+    # Attempt 2: repair prompt, greedy decode
     repair_messages = messages + [
         {"role": "assistant", "content": raw},
         {"role": "user", "content": repair},
@@ -311,10 +315,38 @@ def _generate_with_transformers(
     try:
         return parse_character_json(raw2)
     except Exception as e2:
-        p2 = _dump_debug(raw2, "attempt2")
-        excerpt = (raw2 or "")[:300].replace("\n", " ")
+        _dump_debug(raw2, "attempt2")
+
+    # Attempt 3: sampling decode, plain "reply JSON only" prompt
+    strict_messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are a JSON API. Reply with exactly one JSON object matching "
+                "the schema. No prose, no markdown, no explanation."
+            ),
+        },
+        {
+            "role": "user",
+            "content": (
+                f"Schema: {_read('json_schema.txt')}\n"
+                f"Brief: {user_content}\n"
+                "Output JSON only."
+            ),
+        },
+    ]
+    raw3 = _chat_generate(strict_messages, max_new_tokens=max_new_tokens, greedy=False)
+    try:
+        return parse_character_json(raw3)
+    except Exception as e3:
+        p3 = _dump_debug(raw3, "attempt3")
+        ex1 = (raw or "")[:200].replace("\n", " ")
+        ex2 = (raw2 or "")[:200].replace("\n", " ")
+        ex3 = (raw3 or "")[:200].replace("\n", " ")
         raise ValueError(
-            f"LLM did not produce valid JSON after repair. "
-            f"First error: {e1}; second: {e2}. "
-            f"Raw dumped to {p2}. Excerpt: {excerpt!r}"
+            "LLM did not produce valid JSON after 3 attempts. "
+            f"Errors: first={first_error}; second={e2}; third={e3}. "
+            f"Raw1 excerpt: {ex1!r}. "
+            f"Raw2 excerpt: {ex2!r}. "
+            f"Raw3 dumped to {p3}, excerpt: {ex3!r}"
         )
