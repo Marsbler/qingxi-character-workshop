@@ -75,3 +75,37 @@ def test_missing_affinity_keys_get_fallback():
     data["affinities"] = {}
     card = parse_character_json(json.dumps(data, ensure_ascii=False))
     assert any(v > 0 for v in card.affinities.values())
+
+
+def test_extract_json_ignores_leading_prose():
+    from src.models_schema import extract_json_object
+
+    text = (
+        "Here is your character:\n"
+        + json.dumps(_sample(), ensure_ascii=False)
+        + "\nHope you like it!"
+    )
+    raw = extract_json_object(text)
+    card = parse_character_json(raw)
+    assert card.primary_affinity == "Void"
+
+
+def test_extract_json_takes_first_complete_object():
+    from src.models_schema import extract_json_object
+
+    # truncated first object (no closing brace) then garbage; real object follows
+    text = '{"name": "cut off ' + 'x' * 50 + json.dumps(_sample(), ensure_ascii=False)
+    raw = extract_json_object(text)
+    card = parse_character_json(raw)
+    assert card.primary_affinity == "Void"
+
+
+def test_nested_dict_fields_flattened():
+    data = _sample()
+    data["appearance"] = {"clothing": "Teal robes", "accessories": "Paper lantern"}
+    data["personality"] = ["Quiet", "Observant"]
+    card = parse_character_json(json.dumps(data, ensure_ascii=False))
+    assert isinstance(card.appearance, str)
+    assert "clothing" in card.appearance
+    assert isinstance(card.personality, str)
+    assert "Quiet" in card.personality

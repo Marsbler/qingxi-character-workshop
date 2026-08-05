@@ -262,6 +262,22 @@ def _few_shot_messages() -> list[dict]:
     return msgs
 
 
+def _few_shot_example() -> dict:
+    """Return the first few-shot assistant object (used in attempt 3 prompt)."""
+    fs = PROMPTS / "few_shot.jsonl"
+    if fs.exists():
+        for line in fs.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                ex = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(ex.get("assistant"), dict):
+                return ex["assistant"]
+    return {}
+
+
 def _generate_with_transformers(
     user_text: str,
     affinity_pref: str | None,
@@ -271,10 +287,9 @@ def _generate_with_transformers(
 ) -> CharacterCard:
     """Lazy HF text-generation path. Model cached; JSON-first greedy decoding."""
     cfg = _llm_cfg()
-    max_new_tokens = int(cfg.get("max_new_tokens", 1024))
+    max_new_tokens = int(cfg.get("max_new_tokens", 1536))
 
     system_prompt = build_system_prompt(world)
-    repair = _read("repair_json.txt")
 
     if affinity_pref and affinity_pref not in world.affinity_names():
         raise ValueError(
@@ -315,13 +330,9 @@ def _generate_with_transformers(
         except Exception:
             pass
 
-    # Attempt 2: repair prompt, greedy decode
-    repair_messages = messages + [
-        {"role": "assistant", "content": raw},
-        {"role": "user", "content": repair},
-    ]
+    # Attempt 2: same context but sampling decode (different output trajectory)
     try:
-        raw2 = _chat_generate(repair_messages, max_new_tokens=max_new_tokens, greedy=True)
+        raw2 = _chat_generate(messages, max_new_tokens=max_new_tokens, greedy=False)
         return parse_character_json(raw2)
     except Exception as e:
         second_error = e
@@ -330,19 +341,22 @@ def _generate_with_transformers(
         except Exception:
             pass
 
-    # Attempt 3: sampling decode, plain "reply JSON only" prompt
+    # Attempt 3: minimal "JSON API" prompt + sampling, no few-shot noise
     strict_messages = [
         {
             "role": "system",
             "content": (
                 "You are a JSON API. Reply with exactly one JSON object matching "
-                "the schema. No prose, no markdown, no explanation."
+                "the schema. No prose, no markdown, no explanation. "
+                "Every field listed below must be a plain string (never an "
+                "object or array)."
             ),
         },
         {
             "role": "user",
             "content": (
                 f"Schema: {_read('json_schema.txt')}\n"
+                f"Example: {json.dumps(_few_shot_example(), ensure_ascii=False)}\n"
                 f"Brief: {user_content}\n"
                 "Output JSON only."
             ),

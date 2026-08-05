@@ -34,6 +34,14 @@ class CharacterCard(BaseModel):
     image_negative: str = ""
     motion_prompt: str = ""
 
+    @field_validator("name", "one_liner", "appearance", "personality", "backstory",
+                     "spirit_domain", "ability_showcase", "image_prompt",
+                     "image_negative", "motion_prompt", mode="before")
+    @classmethod
+    def coerce_strings(cls, v: Any) -> str:
+        """Accept nested dict/list for any string field and flatten it."""
+        return _coerce_str(v)
+
     @field_validator("name", "one_liner", "appearance", "image_prompt")
     @classmethod
     def non_empty(cls, v: str) -> str:
@@ -79,16 +87,40 @@ class CharacterCard(BaseModel):
         return "\n".join(lines)
 
 
+def _coerce_str(value: Any) -> str:
+    """Flatten dict/list values to a readable string (LLMs sometimes emit
+    nested objects for plain-string fields like `appearance`)."""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        return ", ".join(f"{k}: {_coerce_str(v)}" for k, v in value.items())
+    if isinstance(value, (list, tuple)):
+        return ", ".join(_coerce_str(v) for v in value)
+    if value is None:
+        return ""
+    return str(value)
+
+
 def extract_json_object(text: str) -> str:
+    """Return the first parseable JSON object found anywhere in `text`.
+
+    Tolerant of leading prose, trailing prose, markdown fences, and truncated
+    output: scans each '{' and uses raw_decode so we take the FIRST complete
+    object even if the LLM appended junk (or got cut off mid-generation).
+    """
     text = text.strip()
     fence = re.search(r"```(?:json)?\s*([\s\S]*?)```", text)
     if fence:
         text = fence.group(1).strip()
-    start = text.find("{")
-    end = text.rfind("}")
-    if start < 0 or end <= start:
-        raise ValueError("no JSON object found")
-    return text[start : end + 1]
+    decoder = json.JSONDecoder()
+    for m in re.finditer(r"\{", text):
+        try:
+            obj, _ = decoder.raw_decode(text[m.start() :])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(obj, dict):
+            return json.dumps(obj, ensure_ascii=False)
+    raise ValueError("no JSON object found")
 
 
 def parse_character_json(text: str) -> CharacterCard:
