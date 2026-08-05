@@ -13,7 +13,7 @@ from PIL import Image
 from src.card_compose import compose_card
 from src.device import detect_device
 from src.image_gen import generate_portrait, unload_image_models
-from src.llm_role import generate_character
+from src.llm_role import generate_character, unload_llm
 from src.models_schema import CharacterCard
 from src.paths import OUTPUTS, ensure_runtime_dirs
 from src.video_gen import generate_ability_video
@@ -92,6 +92,9 @@ def generate_card_job(
         (job_dir / "character.json").write_text(
             card.model_dump_json(indent=2, ensure_ascii=False), encoding="utf-8"
         )
+        # Free LLM VRAM before loading SDXL (7B + SDXL cannot coexist on 24GB).
+        if not mock:
+            unload_llm()
 
         _emit(progress_cb, JobState.IMAGING, "Painting portrait...")
         t2 = time.time()
@@ -157,6 +160,9 @@ def revise_job(
         (job_dir / "character.json").write_text(
             card.model_dump_json(indent=2, ensure_ascii=False), encoding="utf-8"
         )
+        # Free LLM VRAM before re-painting (7B + SDXL cannot coexist on 24GB).
+        if not mock:
+            unload_llm()
         _emit(progress_cb, JobState.IMAGING, "Re-painting portrait...")
         portrait_path = job_dir / "portrait.png"
         ref = Image.open(job_dir / "ref.png") if (job_dir / "ref.png").exists() else None
