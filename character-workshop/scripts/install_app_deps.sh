@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-echo "==> [1/4] Preflight: torch must already be ROCm-capable"
+echo "==> [1/3] Preflight: torch must already be ROCm-capable"
 python3 - <<'PY'
 import sys
 try:
@@ -25,17 +25,10 @@ if "cu" in ver and "rocm" not in ver.lower():
 print("PREFLIGHT OK")
 PY
 
-echo "==> [fonts] ensure CJK font (non-fatal)"
-bash scripts/setup_fonts.sh || echo "WARN: font setup failed; card text may be tofu"
-
-echo "==> [2/4] Install requirements.txt (no torch line)"
+echo "==> [2/3] Install requirements.txt (no torch line)"
 python3 -m pip install -r requirements.txt
 
-echo "==> [3/4] accelerate with --no-deps (prevents CUDA torch pull)"
-python3 -m pip install 'accelerate>=0.33.0' --no-deps
-python3 -m pip install psutil packaging 2>/dev/null || true
-
-echo "==> [4/4] Postflight: torch must STILL be ROCm"
+echo "==> [3/3] Postflight: torch must STILL be ROCm"
 python3 - <<'PY'
 import sys
 import torch

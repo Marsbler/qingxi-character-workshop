@@ -167,10 +167,6 @@ ls -la app.py requirements.txt scripts/install_app_deps.sh
 ```bash
 cd /workspace/qingxi-character-workshop/character-workshop
 
-# optional but recommended: install Noto CJK fonts so Chinese on posters is not garbled
-# (the code already auto-detects fonts and draws a warning at the poster bottom-right when missing; installing the font is the most reliable path)
-sudo apt-get install -y fonts-noto-cjk 2>/dev/null || true
-
 # re-confirm ROCm torch (gate)
 python3 -c "import torch; assert torch.cuda.is_available(); print(torch.__version__, torch.version.hip)"
 
@@ -182,8 +178,7 @@ The script will:
 
 1. Check torch is already ROCm-available
 2. `pip install -r requirements.txt` (does **not** include the accelerate hard dependency that drags in CUDA torch)
-3. `pip install accelerate --no-deps`
-4. **Check again** that torch is still ROCm
+3. **Check again** that torch is still ROCm
 
 **Pass criterion:** the script prints `INSTALL APP DEPS OK`.
 
