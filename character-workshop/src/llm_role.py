@@ -298,24 +298,37 @@ def _generate_with_transformers(
     ]
 
     # Attempt 1: greedy — most reliable for strict JSON output
+    raw = ""
+    raw2 = ""
+    raw3 = ""
     first_error: Exception | None = None
-    raw = _chat_generate(messages, max_new_tokens=max_new_tokens, greedy=True)
+    second_error: Exception | None = None
+    third_error: Exception | None = None
+
     try:
+        raw = _chat_generate(messages, max_new_tokens=max_new_tokens, greedy=True)
         return parse_character_json(raw)
     except Exception as e:
         first_error = e
-        _dump_debug(raw, "attempt1")
+        try:
+            _dump_debug(raw or "no output", "attempt1")
+        except Exception:
+            pass
 
     # Attempt 2: repair prompt, greedy decode
     repair_messages = messages + [
         {"role": "assistant", "content": raw},
         {"role": "user", "content": repair},
     ]
-    raw2 = _chat_generate(repair_messages, max_new_tokens=max_new_tokens, greedy=True)
     try:
+        raw2 = _chat_generate(repair_messages, max_new_tokens=max_new_tokens, greedy=True)
         return parse_character_json(raw2)
-    except Exception as e2:
-        _dump_debug(raw2, "attempt2")
+    except Exception as e:
+        second_error = e
+        try:
+            _dump_debug(raw2 or "no output", "attempt2")
+        except Exception:
+            pass
 
     # Attempt 3: sampling decode, plain "reply JSON only" prompt
     strict_messages = [
@@ -335,17 +348,18 @@ def _generate_with_transformers(
             ),
         },
     ]
-    raw3 = _chat_generate(strict_messages, max_new_tokens=max_new_tokens, greedy=False)
     try:
+        raw3 = _chat_generate(strict_messages, max_new_tokens=max_new_tokens, greedy=False)
         return parse_character_json(raw3)
     except Exception as e3:
-        p3 = _dump_debug(raw3, "attempt3")
+        third_error = e3
+        p3 = _dump_debug(raw3 or "no output", "attempt3")
         ex1 = (raw or "")[:200].replace("\n", " ")
         ex2 = (raw2 or "")[:200].replace("\n", " ")
         ex3 = (raw3 or "")[:200].replace("\n", " ")
         raise ValueError(
             "LLM did not produce valid JSON after 3 attempts. "
-            f"Errors: first={first_error}; second={e2}; third={e3}. "
+            f"Errors: first={first_error}; second={second_error}; third={third_error}. "
             f"Raw1 excerpt: {ex1!r}. "
             f"Raw2 excerpt: {ex2!r}. "
             f"Raw3 dumped to {p3}, excerpt: {ex3!r}"
