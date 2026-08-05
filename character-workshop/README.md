@@ -1,10 +1,10 @@
-# Qingxi Rift Character Workshop
+﻿# Qingxi Rift Character Workshop
 
 Track 1 multimodal tool for the **AMD AI DevMaster Hackathon**.
 
-Turn a short Chinese character brief (optional reference image) into:
+Turn a short character brief (optional reference image) into:
 
-1. Structured lore JSON grounded in the original world **青汐灵隙 / Qingxi Rift**
+1. Structured lore JSON grounded in the original world **Qingxi Rift**
 2. An anime-style portrait
 3. A composed character-card poster (affinity radar + spirit domain)
 4. Optional short ability animation (I2V when models are available)
@@ -13,8 +13,8 @@ All inference is designed for **local AMD Radeon + ROCm** (Radeon Cloud), with a
 
 ## Features
 
-- Original six-affinity world config (`形 / 念 / 生 / 质 / 空 / 时`) — no third-party IP names
-- LLM role planner → validated `CharacterCard` JSON (Pydantic)
+- Original six-affinity world config (`Form / Mind / Life / Matter / Void / Time`) - no third-party IP names
+- LLM role planner -> validated `CharacterCard` JSON (Pydantic)
 - Diffusers portrait path + Pillow card composer
 - Optional ability video (CogVideoX / AnimateDiff hooks; mock MP4 offline)
 - Gradio workbench: left inputs / right results, revise + animate
@@ -48,7 +48,7 @@ python -c "from app import build_app; a=build_app(); print('ok', type(a))"
 
 1. Launch a Radeon Cloud template with a **PyTorch ROCm** image and a **Persistent PVC** for models/outputs.
 2. Clone or upload this repo onto the PVC-backed workspace.
-3. Install app deps matching the image’s ROCm torch (see `scripts/setup_rocm.sh` notes and AMD docs).
+3. Install app deps matching the image's ROCm torch (see `scripts/setup_rocm.sh` notes and AMD docs).
 4. Download models:
 
    ```bash
@@ -125,18 +125,18 @@ character-workshop/
 
 - Real image/video quality depends on checkpoint choice and ROCm wheel compatibility.
 - Video backend may fall back or disable if I2V fails OOM; card path remains usable.
-- MOCK mode is for CI/dev only — not a substitute for demo-day GPU runs.
+- MOCK mode is for CI/dev only - not a substitute for demo-day GPU runs.
 - Banned-IP substrings are filtered at config level; always write original characters.
 
 ## Licenses
 
 - This project code: see repository license / hackathon submission terms.
-- Base models (Qwen, Animagine XL, CogVideoX, etc.): follow each model’s license on Hugging Face.
+- Base models (Qwen, Animagine XL, CogVideoX, etc.): follow each model's license on Hugging Face.
 - Do not ship third-party IP names, art assets, or unlicensed checkpoints in the submission package.
 
 ## Track 1 notes
 
-- Multimodal pipeline: text (+ optional image) → structured lore + portrait + card (+ video).
+- Multimodal pipeline: text (+ optional image) -> structured lore + portrait + card (+ video).
 - Emphasize **local AMD ROCm** inference on Radeon Cloud, not cloud API-only demos.
-- Demo checklist: UI generate → revise → optional animate; show `rocm-smi` / device badge.
-- Keep world setting original (**青汐灵隙**); document mock vs real paths in the write-up.
+- Demo checklist: UI generate -> revise -> optional animate; show `rocm-smi` / device badge.
+- Keep world setting original (**Qingxi Rift**); document mock vs real paths in the write-up.
