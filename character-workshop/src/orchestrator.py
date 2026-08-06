@@ -16,7 +16,6 @@ from src.image_gen import generate_portrait, unload_image_models
 from src.llm_role import generate_character, unload_llm
 from src.models_schema import CharacterCard
 from src.paths import OUTPUTS, ensure_runtime_dirs
-from src.video_gen import generate_ability_video
 
 
 class JobState(str, Enum):
@@ -25,8 +24,6 @@ class JobState(str, Enum):
     IMAGING = "imaging"
     COMPOSING = "composing"
     READY = "ready"
-    ANIMATING = "animating"
-    DONE = "done"
     FAILED = "failed"
 
 
@@ -41,7 +38,6 @@ class JobResult:
     card: CharacterCard | None = None
     card_path: Path | None = None
     portrait_path: Path | None = None
-    video_path: Path | None = None
     lore_md: str = ""
     error: str | None = None
     failed_step: str | None = None
@@ -187,63 +183,4 @@ def revise_job(
             job_dir=job_dir,
             error=str(e),
             failed_step="revise",
-        )
-
-
-def animate_job(
-    job_id: str,
-    mock: bool | None = None,
-    progress_cb: ProgressCb | None = None,
-) -> JobResult:
-    job_dir = _job_dir(job_id)
-    portrait = job_dir / "portrait.png"
-    card = CharacterCard.model_validate_json(
-        (job_dir / "character.json").read_text(encoding="utf-8")
-    )
-    card_path = job_dir / "card.png"
-    try:
-        _emit(progress_cb, JobState.ANIMATING, "Generating ability animation...")
-        unload_image_models()
-        video_path = job_dir / "ability.mp4"
-        path, err = generate_ability_video(
-            portrait_path=portrait,
-            motion_prompt=card.motion_prompt,
-            out_path=video_path,
-            mock=mock,
-        )
-        if err:
-            _emit(progress_cb, JobState.READY, f"Animation failed (card still usable): {err}")
-            return JobResult(
-                job_id=job_id,
-                state=JobState.READY,
-                job_dir=job_dir,
-                card=card,
-                card_path=card_path if card_path.exists() else None,
-                portrait_path=portrait,
-                lore_md=card.lore_markdown(),
-                error=err,
-                failed_step="animate",
-            )
-        _emit(progress_cb, JobState.DONE, "Animation complete")
-        return JobResult(
-            job_id=job_id,
-            state=JobState.DONE,
-            job_dir=job_dir,
-            card=card,
-            card_path=card_path if card_path.exists() else None,
-            portrait_path=portrait,
-            video_path=path,
-            lore_md=card.lore_markdown(),
-        )
-    except Exception as e:
-        return JobResult(
-            job_id=job_id,
-            state=JobState.READY,
-            job_dir=job_dir,
-            card=card,
-            card_path=card_path if card_path.exists() else None,
-            portrait_path=portrait,
-            lore_md=card.lore_markdown(),
-            error=str(e),
-            failed_step="animate",
         )

@@ -511,31 +511,6 @@ print("REVISE OK", r.card_path)
 PY
 ```
 
-### F6. Video (P1, failure allowed)
-
-```bash
-export MOCK=0
-python3 - <<'PY'
-from src.orchestrator import generate_card_job, animate_job, JobState
-base = generate_card_job("Void-affinity paper lantern traveler", affinity_pref="Void", mock=False)
-assert base.state == JobState.READY
-r = animate_job(base.job_id, mock=False)
-print("state", r.state, "video", r.video_path, "err", r.error)
-# success or soft-fail both OK; the card must still exist
-assert base.card_path.exists() or (r.card_path and r.card_path.exists())
-print("ANIMATE DONE (check video or soft-fail)")
-PY
-```
-
-If `NotImplementedError` / ROCm unsupported:
-
-```bash
-# temporarily disable video to protect P0
-# edit configs/models.yaml -> video.enabled: false
-```
-
-To really integrate I2V: adapt `_cogvideox` in `src/video_gen.py` on the cloud per the Diffusers/CogVideoX docs, then rerun F6.
-
 ---
 
 ## Stage G - Start the Web UI
@@ -587,7 +562,6 @@ rc-tunnel status
 - [ ] Download/view `card.png`
 - [ ] Optional: test one reference image
 - [ ] Revision
-- [ ] Ability animation: success or a friendly failure with the card still present
 - [ ] Top-bar device is not mock
 
 ---
@@ -610,8 +584,7 @@ Suggested recording order:
 2. `export MOCK=0 && python3 app.py`
 3. UI generate card (case01)
 4. revision or reference image
-5. animation, or explain the P1 limits
-6. show `outputs/.../card.png`
+5. show `outputs/.../card.png`
 
 ---
 
@@ -697,7 +670,6 @@ If the PVC mount is not `/persistent`: `PVC_WORKSPACE=/your/path bash scripts/se
 | `No module named src` | `cd` to the directory containing `app.py` |
 | Gradio will not open | `curl 127.0.0.1:7860`; check `PORT`; use `rc-tunnel` |
 | Still MOCK images | `echo $MOCK` must be empty or `0`; restart the app |
-| Video always NotImplemented | Expected until wired up; `video.enabled: false` |
 | Quota ran out | Destroy; keep editing code with local MOCK |
 
 ---

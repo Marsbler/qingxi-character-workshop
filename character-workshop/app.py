@@ -5,7 +5,7 @@ import os
 import gradio as gr
 
 from src.device import detect_device, vram_profile
-from src.orchestrator import JobState, animate_job, generate_card_job, revise_job
+from src.orchestrator import JobState, generate_card_job, revise_job
 from src.paths import ensure_runtime_dirs
 from src.world import load_world
 
@@ -51,14 +51,11 @@ def ui_generate(brief, ref, affinity, progress=gr.Progress(track_tqdm=False)):
         raise gr.Error(result.error or "Generation failed")
 
     status = " -> ".join(states) if states else result.state.value
-    video = str(result.video_path) if result.video_path else None
     return (
         result.job_id,
         str(result.card_path) if result.card_path else None,
         result.lore_md,
         status,
-        video,
-        None,
     )
 
 
@@ -78,26 +75,7 @@ def ui_revise(job_id, instruction, progress=gr.Progress(track_tqdm=False)):
         str(result.card_path) if result.card_path else None,
         result.lore_md,
         f"revised: {result.state.value}",
-        None,
     )
-
-
-def ui_animate(job_id, progress=gr.Progress(track_tqdm=False)):
-    if not job_id:
-        raise gr.Error("Generate a character card first")
-
-    def cb(state: JobState, msg: str):
-        progress(0.5, desc=msg)
-
-    result = animate_job(job_id, mock=None, progress_cb=cb)
-    err = result.error
-    video = str(result.video_path) if result.video_path else None
-    status = (
-        "Animation complete"
-        if video and not err
-        else f"Animation unavailable (card still usable): {err or 'unknown'}"
-    )
-    return video, status
 
 
 def build_app() -> gr.Blocks:
@@ -130,21 +108,17 @@ def build_app() -> gr.Blocks:
                 card_img = gr.Image(label="Character Card", type="filepath")
                 lore = gr.Markdown(label="Lore")
                 status = gr.Textbox(label="Progress", interactive=False)
-                btn_vid = gr.Button("Generate Ability Animation")
-                video = gr.Video(label="Ability Animation")
-                vid_status = gr.Textbox(label="Animation status", interactive=False)
 
         btn.click(
             ui_generate,
             inputs=[brief, ref, affinity],
-            outputs=[job_id, card_img, lore, status, video, vid_status],
+            outputs=[job_id, card_img, lore, status],
         )
         btn_rev.click(
             ui_revise,
             inputs=[job_id, revise_txt],
-            outputs=[card_img, lore, status, video],
+            outputs=[card_img, lore, status],
         )
-        btn_vid.click(ui_animate, inputs=[job_id], outputs=[video, vid_status])
 
         gr.Markdown(
             "Powered by **AMD Radeon + ROCm** local inference | "

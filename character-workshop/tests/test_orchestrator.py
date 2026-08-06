@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.orchestrator import JobState, generate_card_job, revise_job, animate_job
+from src.orchestrator import JobState, generate_card_job, revise_job
 
 
 def test_generate_card_job_mock():
@@ -23,12 +23,8 @@ def test_generate_card_job_mock():
     assert result.error is None
 
 
-def test_revise_and_animate_mock():
+def test_revise_mock():
     base = generate_card_job("A Mind boy with black hair", affinity_pref="Mind", mock=True)
     rev = revise_job(base.job_id, "change to short golden hair", mock=True)
     assert rev.state == JobState.READY
     assert "golden" in rev.card.appearance or "golden" in rev.card.image_prompt
-    anim = animate_job(rev.job_id, mock=True)
-    assert anim.state in {JobState.DONE, JobState.READY}
-    # video path or soft fail both ok in mock if file exists
-    assert anim.error is None or anim.video_path is None

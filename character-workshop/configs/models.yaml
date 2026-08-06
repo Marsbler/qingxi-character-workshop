@@ -20,12 +20,3 @@ image:
   enable_vae_tiling: true
   lora_path: null
   lora_scale: 0.8
-
-video:
-  enabled: true
-  # Set after ROCm smoke test - placeholder id
-  model_id: "THUDM/CogVideoX-2b"
-  backend: auto   # auto | cogvideox | animatediff | mock
-  num_frames: 49
-  fps: 8
-  timeout_sec: 240

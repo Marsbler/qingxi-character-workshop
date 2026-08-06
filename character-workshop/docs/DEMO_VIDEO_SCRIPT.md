@@ -44,8 +44,7 @@ This loads 7B + SDXL so the recording run is fast and stable.
 | 5 | Case 2 - revise | 2:20-3:00 | One-line revision, re-render |
 | 6 | Case 3 - reference img | 3:00-3:40 | Upload sketch -> card influenced by it |
 | 7 | Case 4 - diversity | 3:40-4:30 | 3 short prompts across affinities, quick montage |
-| 8 | (Optional) Ability animation | 4:30-4:50 | Show soft-fail OR live video if wired |
-| 9 | Wrap up | 4:50-5:00 | Architecture one-liner, thanks |
+| 8 | Wrap up | 4:30-5:00 | Architecture one-liner, thanks |
 
 ---
 
@@ -99,13 +98,7 @@ Point out the output follows the reference pose/hair while staying original anim
 Run 3 short prompts (from pool below), cut between results quickly.
 Emphasize: different affinities -> different visual keywords, radar shapes, lore.
 
-### Section 8 - Ability animation (4:30-4:50)
-
-Click **Generate Ability Animation**.
-- If wired: show 2-4s clip.
-- If soft-fail: show the friendly message, explain I2V is a P1 extension with graceful degradation, card remains usable.
-
-### Section 9 - Wrap up (4:50-5:00)
+### Section 8 - Wrap up (4:30-5:00)
 
 One-line: "Text plus optional image becomes an original character card - fully local on AMD Radeon."
 
@@ -175,7 +168,6 @@ Notes:
 |---------|------------------|
 | LLM JSON error | Show the error message + note "3-attempt retry" design, retry once |
 | Image OOM | Lower resolution note; restart app |
-| Video soft-fail | Present it as designed degradation (still show card) |
 | Network/API | Not used - all local, so nothing to show |
 
 Have a pre-recorded fallback card output ready in `outputs/` in case a live run fails during the take.

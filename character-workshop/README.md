@@ -7,7 +7,6 @@ Turn a short character brief (optional reference image) into:
 1. Structured lore JSON grounded in the original world **Qingxi Rift**
 2. An anime-style portrait
 3. A composed character-card poster (affinity radar + spirit domain)
-4. Optional short ability animation (I2V when models are available)
 
 All inference is designed for **local AMD Radeon + ROCm** (Radeon Cloud), with a full **MOCK** path for laptop development.
 
@@ -16,8 +15,7 @@ All inference is designed for **local AMD Radeon + ROCm** (Radeon Cloud), with a
 - Original six-affinity world config (`Form / Mind / Life / Matter / Void / Time`) - no third-party IP names
 - LLM role planner -> validated `CharacterCard` JSON (Pydantic)
 - Diffusers portrait path + Pillow card composer
-- Optional ability video (CogVideoX / AnimateDiff hooks; mock MP4 offline)
-- Gradio workbench: left inputs / right results, revise + animate
+- Gradio workbench: left inputs / right results, revise
 - Device detection and VRAM profiles for ROCm/CUDA
 
 ## Quick start (MOCK)
@@ -125,7 +123,7 @@ character-workshop/
   app.py                 # Gradio workbench
   configs/
     world.yaml           # Qingxi Rift world + affinities + IP policy
-    models.yaml          # LLM / image / video model ids
+    models.yaml          # LLM / image model ids
   prompts/               # system role, schema, few-shot, repair
   src/
     device.py            # ROCm/CUDA detection + VRAM profiles
@@ -134,8 +132,7 @@ character-workshop/
     llm_role.py          # mock + HF character generator
     image_gen.py         # portrait (mock + Diffusers)
     card_compose.py      # poster composer
-    video_gen.py         # ability video (mock + I2V hooks)
-    orchestrator.py      # generate / revise / animate jobs
+    orchestrator.py      # generate / revise jobs
     paths.py
   data/eval/cases.jsonl
   scripts/
@@ -149,20 +146,19 @@ character-workshop/
 
 ## Limitations
 
-- Real image/video quality depends on checkpoint choice and ROCm wheel compatibility.
-- Video backend may fall back or disable if I2V fails OOM; card path remains usable.
+- Real image quality depends on checkpoint choice and ROCm wheel compatibility.
 - MOCK mode is for CI/dev only - not a substitute for demo-day GPU runs.
 - Banned-IP substrings are filtered at config level; always write original characters.
 
 ## Licenses
 
 - This project code: see repository license / hackathon submission terms.
-- Base models (Qwen, Animagine XL, CogVideoX, etc.): follow each model's license on Hugging Face.
+- Base models (Qwen, Animagine XL, etc.): follow each model's license on Hugging Face.
 - Do not ship third-party IP names, art assets, or unlicensed checkpoints in the submission package.
 
 ## Track 1 notes
 
-- Multimodal pipeline: text (+ optional image) -> structured lore + portrait + card (+ video).
+- Multimodal pipeline: text (+ optional image) -> structured lore + portrait + card.
 - Emphasize **local AMD ROCm** inference on Radeon Cloud, not cloud API-only demos.
-- Demo checklist: UI generate -> revise -> optional animate; show `rocm-smi` / device badge.
+- Demo checklist: UI generate -> revise; show `rocm-smi` / device badge.
 - Keep world setting original (**Qingxi Rift**); document mock vs real paths in the write-up.

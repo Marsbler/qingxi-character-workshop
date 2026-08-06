@@ -115,7 +115,6 @@ pytest tests/test_models_schema.py -v
 pytest tests/test_llm_role.py -v
 pytest tests/test_card_compose.py -v
 pytest tests/test_image_gen_mock.py -v
-pytest tests/test_video_gen_mock.py -v
 pytest tests/test_orchestrator.py -v
 ```
 
@@ -212,7 +211,7 @@ To stop: `Ctrl + C` in the terminal.
 |---|------|----------|
 | 1 | Look at the top bar | "Qingxi Rift - Character Workshop" title, tagline, device/mock info |
 | 2 | Left side has | description box, reference image, six-affinity dropdown, generate card, revise, apply revision |
-| 3 | Right side has | character card poster, settings, progress, generate ability animation, video area |
+| 3 | Right side has | character card poster, settings, progress |
 | 4 | Footer | AMD Radeon + ROCm / Qingxi Rift related text |
 
 ### 6.3 Case A - generate a character card (required)
@@ -246,15 +245,6 @@ To stop: `Ctrl + C` in the terminal.
 - [ ] The settings or appearance-related text shows revision traces (MOCK writes the revision into appearance / prompt)
 - [ ] No full-page crash
 
-### 6.5 Case C - ability animation (required, soft-fail acceptable)
-
-1. After case A succeeds, click **Generate Ability Animation**
-
-**Pass criteria (either one is enough):**
-
-- [ ] A short video/GIF appears in the video area; or
-- [ ] The animation status shows failure/placeholder, but **the character card poster is still there** (soft fail, by design)
-
 ### 6.6 Case D - reference image (recommended)
 
 1. Upload any local image (a selfie or sketch is fine)
@@ -273,7 +263,6 @@ To stop: `Ctrl + C` in the terminal.
 |------|------|
 | Click generate with an empty description | Shows a prompt to fill in the description (e.g. "Please fill in the character setting description") |
 | Click "Apply Revision" before generating | Prompts to generate a character card first |
-| Click "Generate Ability Animation" before generating | Prompts to generate a character card first |
 
 ### 6.8 Case F - affinity sampling (optional)
 
@@ -294,7 +283,6 @@ character-workshop/
     character.json     # structured character
     portrait.png       # portrait (placeholder image in MOCK)
     card.png           # composed poster * the main file to check
-    ability.mp4|.webp  # animation (if successful)
     meta.json          # device and timing info
 ```
 
@@ -385,7 +373,6 @@ venv: yes / no
 [ ] CLI E2E produced card.png
 [ ] UI generated a character card
 [ ] UI revision
-[ ] UI ability animation (success or soft-fail acceptable)
 [ ] UI empty-input error works
 
 Verdict: PASS / FAIL
@@ -399,7 +386,7 @@ Notes:
 | Mode | Command | What it tests |
 |------|------|--------|
 | **Local MOCK** | `$env:MOCK="1"` | Flow, UI, card composition, tests (this guide) |
-| **Radeon real inference** | `$env:MOCK="0"` + ROCm + model download | Real image/video quality (see the README Cloud section) |
+| **Radeon real inference** | `$env:MOCK="0"` + ROCm + model download | Real image quality (see the README Cloud section) |
 
 Locally, do **not** use "does the image look like a great anime production" as the MOCK pass criteria; the MOCK portrait is a placeholder image. What matters: flow completes, card composition is correct, interactions do not crash.
 
