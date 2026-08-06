@@ -634,6 +634,59 @@ Next Launch of the same Template + PVC should keep the code and HF cache (depend
 
 ---
 
+## Stage I.1 - PVC offline persistence (download once, then restore with zero network)
+
+**Goal:** env / weights / deps all live on the PVC; every Launch after that is one command with no re-download.
+
+### I.1.1 One-time prep (online, do once on the current instance)
+
+```bash
+cd /persistent/qingxi-character-workshop/character-workshop
+
+# (a) confirm model markers are complete (True True = models count as present)
+python3 -c "from src.model_paths import has_local_llm, has_local_image; print(has_local_llm(), has_local_image())"
+
+# (b) pre-download pip dependency wheels to the PVC (once only)
+mkdir -p /persistent/wheels
+python3 -m pip download -r requirements.txt -d /persistent/wheels
+python3 -m pip download 'accelerate>=0.33.0' --no-deps -d /persistent/wheels
+python3 -m pip download psutil packaging -d /persistent/wheels
+ls /persistent/wheels | wc -l   # expect dozens of wheels
+```
+
+If (a) is not `True True`: check `models/llm/config.json` and `models/image/model_index.json` exist; complete them or re-run `bash scripts/download_models.sh`.
+
+### I.1.2 After every Launch (fully offline restore)
+
+```bash
+cd /persistent/qingxi-character-workshop/character-workshop
+bash scripts/setup_env.sh
+export MOCK=0
+python3 app.py
+```
+
+Offline behavior of the script:
+
+| Step | Result |
+|------|--------|
+| torch check | provided by image, not reinstalled |
+| deps | `--no-index --find-links /persistent/wheels` fully offline |
+| accelerate | same offline |
+| models | marker present -> **SKIP, 0 downloads** |
+| code load | prefers local `models/` weights |
+
+**Verify offline mode** (output should contain):
+
+```text
+==> wheels:   OFFLINE source /persistent/wheels
+SKIP (exists): Qwen/Qwen2.5-7B-Instruct -> models/llm
+SKIP (exists): cagliostrolab/animagine-xl-3.1 -> models/image
+```
+
+If the PVC mount is not `/persistent`: `PVC_WORKSPACE=/your/path bash scripts/setup_env.sh`.
+
+---
+
 ## Stage J - Troubleshooting quick reference
 
 | Symptom | Command/Fix |

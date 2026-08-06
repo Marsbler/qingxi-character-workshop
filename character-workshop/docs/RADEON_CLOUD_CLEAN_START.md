@@ -291,6 +291,49 @@ Destroy dirty instance (optional)
   -> app.py
 ```
 
+> If the PVC is already offline-persisted, replace step "install deps" with `bash scripts/setup_env.sh` (see Step 11).
+
+---
+
+## Step 11 - PVC offline persistence (download once, then restore with zero network)
+
+### 11.1 One-time prep (online, do once)
+
+```bash
+cd /persistent/qingxi-character-workshop/character-workshop
+
+# (a) confirm model markers are complete (True True = models count as present)
+python3 -c "from src.model_paths import has_local_llm, has_local_image; print(has_local_llm(), has_local_image())"
+
+# (b) pre-download pip dependency wheels to the PVC (once only)
+mkdir -p /persistent/wheels
+python3 -m pip download -r requirements.txt -d /persistent/wheels
+python3 -m pip download 'accelerate>=0.33.0' --no-deps -d /persistent/wheels
+python3 -m pip download psutil packaging -d /persistent/wheels
+ls /persistent/wheels | wc -l   # expect dozens of wheels
+```
+
+If (a) is not `True True`: check `models/llm/config.json` and `models/image/model_index.json` exist; complete them or re-run `bash scripts/download_models.sh`.
+
+### 11.2 After every Launch (fully offline restore)
+
+```bash
+cd /persistent/qingxi-character-workshop/character-workshop
+bash scripts/setup_env.sh
+export MOCK=0
+python3 app.py
+```
+
+**Verify offline mode** (output should contain):
+
+```text
+==> wheels:   OFFLINE source /persistent/wheels
+SKIP (exists): Qwen/Qwen2.5-7B-Instruct -> models/llm
+SKIP (exists): cagliostrolab/animagine-xl-3.1 -> models/image
+```
+
+If the PVC mount is not `/persistent`: `PVC_WORKSPACE=/your/path bash scripts/setup_env.sh`.
+
 ---
 
 ## Appendix A - Clean leftover CUDA packages in PVC
