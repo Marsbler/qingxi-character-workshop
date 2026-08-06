@@ -59,9 +59,13 @@ def _generate_diffusers(
     import torch
     from diffusers import StableDiffusionXLPipeline, StableDiffusionXLImg2ImgPipeline
 
+    from src.model_paths import has_local_image, local_image_dir
+
     global _pipe
     cfg = _image_cfg()
     model_id = cfg["model_id"]
+    if has_local_image():
+        model_id = str(local_image_dir())
     device = torch_device_string()
     info = detect_device()
     profile = vram_profile(info)

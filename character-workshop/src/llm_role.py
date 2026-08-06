@@ -171,7 +171,12 @@ def _llm_cfg() -> dict:
 
 
 def _load_llm():
-    """Load and cache tokenizer+model once per process."""
+    """Load and cache tokenizer+model once per process.
+
+    Prefers a local checkpoint under models/llm (PVC-persisted); otherwise
+    falls back to the HF model id from config (which may download to the
+    standard HF cache on first use).
+    """
     global _llm_model, _llm_tokenizer
     if _llm_model is not None and _llm_tokenizer is not None:
         return _llm_tokenizer, _llm_model
@@ -180,9 +185,13 @@ def _load_llm():
     from transformers import AutoModelForCausalLM, AutoTokenizer  # type: ignore
 
     from src.device import torch_device_string
+    from src.model_paths import has_local_llm, local_llm_dir
 
     cfg = _llm_cfg()
-    model_name = cfg.get("model_id", "Qwen/Qwen2.5-3B-Instruct")
+    if has_local_llm():
+        model_name = str(local_llm_dir())
+    else:
+        model_name = cfg.get("model_id", "Qwen/Qwen2.5-7B-Instruct")
     device = torch_device_string()
     _llm_tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
     _llm_model = AutoModelForCausalLM.from_pretrained(
