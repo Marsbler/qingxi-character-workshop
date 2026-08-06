@@ -8,14 +8,17 @@
 # What it does (idempotent, safe to re-run):
 #   1. Point pip cache and HF cache at the PVC (/persistent) so re-runs are fast.
 #   2. Verify ROCm torch (never installs CUDA torch).
-#   3. Install app deps from requirements.txt (torch untouched).
+#   3. Install app deps.
+#      - If /persistent/wheels exists (pre-downloaded), install OFFLINE from it.
+#      - Otherwise install from index, caching wheels into the PVC pip cache.
 #   4. Install accelerate without deps.
 #   5. Skip models that already exist under models/; download missing ones.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-# --- 0. PVC-aware caches (edit WORKSPACE if your PVC path differs) -----------
+# --- 0. PVC-aware paths (edit WORKSPACE if your PVC path differs) -----------
 WORKSPACE="${PVC_WORKSPACE:-/persistent}"
+WHEEL_DIR="${WORKSPACE}/wheels"          # pre-downloaded wheels (optional)
 export PIP_CACHE_DIR="${WORKSPACE}/.pip-cache"
 export HF_HOME="${WORKSPACE}/.hf-cache"
 export HF_HUB_CACHE="${HF_HOME}/hub"
@@ -23,6 +26,13 @@ mkdir -p "$PIP_CACHE_DIR" "$HF_HOME"
 
 echo "==> pip cache: $PIP_CACHE_DIR"
 echo "==> hf  cache: $HF_HOME"
+if [ -d "$WHEEL_DIR" ] && [ -n "$(ls -A "$WHEEL_DIR" 2>/dev/null)" ]; then
+  echo "==> wheels:   OFFLINE source $WHEEL_DIR"
+  OFFLINE=1
+else
+  echo "==> wheels:   none (online install, cached to PVC)"
+  OFFLINE=0
+fi
 
 # --- 1. Preflight: ROCm torch -----------------------------------------------
 echo "==> [1/5] Preflight: torch must already be ROCm-capable"
@@ -48,11 +58,20 @@ PY
 
 # --- 2. App deps (torch untouched) -------------------------------------------
 echo "==> [2/5] Install requirements.txt (no torch line)"
-python3 -m pip install -r requirements.txt
+if [ "$OFFLINE" = "1" ]; then
+  python3 -m pip install --no-index --find-links "$WHEEL_DIR" -r requirements.txt
+else
+  python3 -m pip install -r requirements.txt
+fi
 
 echo "==> [3/5] accelerate with --no-deps (prevents CUDA torch pull)"
-python3 -m pip install 'accelerate>=0.33.0' --no-deps
-python3 -m pip install psutil packaging 2>/dev/null || true
+if [ "$OFFLINE" = "1" ]; then
+  python3 -m pip install --no-index --find-links "$WHEEL_DIR" 'accelerate>=0.33.0' --no-deps
+  python3 -m pip install --no-index --find-links "$WHEEL_DIR" psutil packaging 2>/dev/null || true
+else
+  python3 -m pip install 'accelerate>=0.33.0' --no-deps
+  python3 -m pip install psutil packaging 2>/dev/null || true
+fi
 
 # --- 3. Postflight: torch must STILL be ROCm ----------------------------------
 echo "==> [4/5] Postflight: torch must STILL be ROCm"
