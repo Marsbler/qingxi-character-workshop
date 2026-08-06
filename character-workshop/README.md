@@ -46,6 +46,31 @@ python -c "from app import build_app; a=build_app(); print('ok', type(a))"
 
 ## Real inference (Radeon Cloud + ROCm)
 
+### One-shot restore after each instance launch
+
+Code, models and caches live on the PVC. After launching a fresh instance:
+
+```bash
+cd /persistent/qingxi-character-workshop/character-workshop   # adjust to your PVC path
+bash scripts/setup_env.sh
+```
+
+`setup_env.sh` is idempotent and does everything in one command:
+
+1. Points `PIP_CACHE_DIR` and `HF_HOME` at the PVC (`/persistent`) so installs re-run in seconds and models are never re-downloaded.
+2. Verifies ROCm torch (never installs CUDA torch).
+3. Installs app deps from `requirements.txt` + `accelerate --no-deps`.
+4. Skips models already in `models/`, downloads only what's missing.
+
+Then run:
+
+```bash
+export MOCK=0
+python app.py
+```
+
+### Manual steps (equivalent, if you prefer step-by-step)
+
 1. Launch a Radeon Cloud template with a **PyTorch ROCm** image and a **Persistent PVC** for models/outputs.
 2. Clone or upload this repo onto the PVC-backed workspace.
 3. Install app deps matching the image's ROCm torch (see `scripts/setup_rocm.sh` notes and AMD docs).
@@ -79,6 +104,7 @@ python -c "from app import build_app; a=build_app(); print('ok', type(a))"
 ### PVC tips
 
 - Keep `models/` and Hugging Face cache on PVC so restarts do not re-download.
+- `setup_env.sh` points pip + HF caches at `/persistent` (override with `PVC_WORKSPACE` env).
 - Write job artifacts under `outputs/<job_id>/` (already gitignored patterns apply).
 - Destroy idle GPU instances after demos; keep PVC for weights.
 
